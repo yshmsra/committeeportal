@@ -90,41 +90,40 @@ export class AuthService {
   }
 
   private saveSession(data: LoginResponse, token?: string): void {
-    localStorage.setItem('role', data.role);
-    localStorage.setItem('userId', data.userId.toString());
-    localStorage.setItem('userName', data.userName);
+    sessionStorage.setItem('role', data.role);
+    sessionStorage.setItem('userId', data.userId.toString());
+    sessionStorage.setItem('userName', data.userName);
     // Save token if provided
     if (token) {
-      localStorage.setItem('token', token);
+      sessionStorage.setItem('token', token);
     }
   }
 
   logout(): void {
-    localStorage.clear();
     sessionStorage.clear();
   }
 
   getRole(): string | null {
-    return localStorage.getItem('role');
+    return sessionStorage.getItem('role');
   }
 
   getApproverId(): number {
-    const id = localStorage.getItem('userId');
+    const id = sessionStorage.getItem('userId');
     return id ? parseInt(id, 10) : 0;
   }
 
   getCommitteeId(): number {
-    const id = localStorage.getItem('userId');
+    const id = sessionStorage.getItem('userId');
     return id ? parseInt(id, 10) : 0;
   }
 
   getUserName(): string {
-    return localStorage.getItem('userName') || 'User';
+    return sessionStorage.getItem('userName') || 'User';
   }
 
   isAuthenticated(): boolean {
-    const token = localStorage.getItem('token');
-    const userId = localStorage.getItem('userId');
+    const token = sessionStorage.getItem('token');
+    const userId = sessionStorage.getItem('userId');
     return !!token && !!userId && this.isTokenValid(token);
   }
 
@@ -171,9 +170,9 @@ export class AuthService {
    * Server-side validation is attempted but failures are not fatal
    */
   validateAuthOnInit(): Observable<boolean> {
-    const token = localStorage.getItem('token');
-    const userId = localStorage.getItem('userId');
-    const role = localStorage.getItem('role');
+    const token = sessionStorage.getItem('token');
+    const userId = sessionStorage.getItem('userId');
+    const role = sessionStorage.getItem('role');
 
     // If no session data at all, user is not authenticated
     if (!token || !userId || !role) {

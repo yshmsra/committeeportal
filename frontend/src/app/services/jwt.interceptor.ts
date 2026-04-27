@@ -13,8 +13,8 @@ export class JwtInterceptor implements HttpInterceptor {
   constructor(private authService: AuthService) { }
 
   intercept(request: HttpRequest<unknown>, next: HttpHandler): Observable<HttpEvent<unknown>> {
-    // Get the JWT token from localStorage (saved during login)
-    const token = localStorage.getItem('token');
+    // Get the JWT token from sessionStorage (saved during login)
+    const token = sessionStorage.getItem('token');
 
     // If token exists, add it to the Authorization header
     if (token) {

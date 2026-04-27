@@ -27,7 +27,7 @@ interface PermissionApplication {
   styleUrls: ['./approver-dashboard.component.css']
 })
 export class ApproverDashboardComponent implements OnInit, OnDestroy {
-  // Read approver ID from localStorage (set at login)
+  // Read approver ID from sessionStorage (set at login)
   approverId: number = 1;
   approverName: string = 'Approver';
 
