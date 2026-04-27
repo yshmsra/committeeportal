@@ -337,7 +337,7 @@
         <!-- Uploaded Documents List -->
         <div *ngIf="selectedApp.attachedDocuments && selectedApp.attachedDocuments.length > 0" class="documents-list">
           <div class="documents-header">
-            <p style="font-size: 0.9rem; color: #666; margin-bottom: 12px;">
+            <p class="section-count">
               {{ selectedApp.attachedDocuments.length }} document(s) uploaded
             </p>
           </div>
@@ -362,7 +362,7 @@
 
         <!-- Upload New Documents -->
         <div class="upload-section">
-          <p style="font-size: 0.85rem; color: #666; margin-bottom: 10px;">
+          <p class="upload-hint">
             Upload hardcopy permission documents (PDF only)
           </p>
           
@@ -388,7 +388,7 @@
           </div>
 
           <div *ngIf="selectedFiles.length > 0" class="selected-files-list">
-            <p style="font-size: 0.85rem; margin-bottom: 8px; color: #333; font-weight: 500;">
+            <p class="selected-files-title">
               {{ selectedFiles.length }} file(s) selected:
             </p>
             <ul>
@@ -436,66 +436,64 @@
 
 <!-- ─── Submit Permission Modal ─── -->
 <div class="drawer-overlay" *ngIf="showSubmitModal" (click)="closeSubmitModal()">
-  <div class="drawer" style="max-width: 450px;" (click)="$event.stopPropagation()">
+  <div class="drawer submit-drawer" (click)="$event.stopPropagation()">
     <div class="drawer-header">
       <div>
         <h3>Submit Permission Application</h3>
         <p class="drawer-subtitle">Select approver and attach documents for "{{ selectedEventToSubmit?.eventName }}"</p>
       </div>
       <button class="modal-close" (click)="closeSubmitModal()" aria-label="Close">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="18" height="18">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="20" height="20">
           <line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>
         </svg>
       </button>
     </div>
     <div class="drawer-body">
       <!-- Approver Selection -->
-      <div class="form-group" style="padding-bottom: 20px;">
-        <label for="approverSelect" style="display: block; margin-bottom: 8px; color: #1a1d23; font-weight: 500;">Select Approver</label>
-        <select id="approverSelect" [(ngModel)]="selectedApproverId" style="width: 100%; padding: 10px; border: 1px solid #ddd; border-radius: 6px; color: #1a1d23;">
+      <div class="modal-form-group">
+        <label for="approverSelect" class="modal-label">Select Approver</label>
+        <select id="approverSelect" [(ngModel)]="selectedApproverId" class="modal-select">
           <option [ngValue]="null" disabled selected>-- Choose Approver --</option>
           <option *ngFor="let approver of approvers" [ngValue]="approver.approverId">
             {{ approver.name }} ({{ approver.role }})
           </option>
         </select>
-        <p *ngIf="approvers.length === 0" style="color: #d32f2f; font-size: 0.85rem; margin-top: 5px;">No approvers available. Registration required.</p>
+        <p *ngIf="approvers.length === 0" class="field-error" style="margin-top: 10px;">No approvers available. Registration required.</p>
       </div>
 
       <!-- File Upload Section -->
-      <div class="form-group" style="padding-bottom: 20px;">
-        <label style="display: block; margin-bottom: 8px; color: #1a1d23; font-weight: 500;">Attach Documents <span style="color: #d32f2f;">*</span></label>
-        <div style="position: relative; border: 2px dashed #2563eb; border-radius: 6px; padding: 20px; text-align: center; cursor: pointer; background-color: #f9fafb;">
-          <input type="file" multiple accept=".pdf" (change)="onFilesSelected($event)" #fileInput style="position: absolute; opacity: 0; width: 100%; height: 100%; cursor: pointer;" />
-          <div (click)="fileInput.click()">
-            <svg style="width: 32px; height: 32px; margin: 0 auto 8px; color: #2563eb;" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/>
-            </svg>
-            <p style="color: #1a1d23; font-weight: 500; margin: 0;">Click to upload or drag and drop</p>
-            <p style="color: #6b7280; font-size: 0.85rem; margin: 4px 0 0 0;">PDF files only (max 5 files)</p>
-          </div>
+      <div class="modal-form-group">
+        <label class="modal-label">Attach Documents <span class="required">*</span></label>
+        <div class="drop-zone" (click)="submitFileInput.click()">
+          <input type="file" multiple accept=".pdf" (change)="onFilesSelected($event)" #submitFileInput style="display: none;" />
+          <svg class="drop-zone-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/>
+          </svg>
+          <p class="drop-zone-text">Click to upload or drag and drop</p>
+          <p class="drop-zone-subtext">PDF files only (max 5 files)</p>
         </div>
       </div>
 
       <!-- Selected Files List -->
-      <div *ngIf="selectedFiles.length > 0" style="padding-bottom: 20px;">
-        <label style="display: block; margin-bottom: 8px; color: #1a1d23; font-weight: 500;">Selected Files ({{ selectedFiles.length }})</label>
-        <div style="background-color: #f9fafb; border-radius: 6px; padding: 10px; max-height: 200px; overflow-y: auto;">
-          <div *ngFor="let file of selectedFiles" style="display: flex; justify-content: space-between; align-items: center; padding: 8px; background: white; border-radius: 4px; margin-bottom: 6px; border-left: 3px solid #10B981;">
-            <div style="flex: 1;">
-              <p style="margin: 0; color: #1a1d23; font-size: 0.9rem; font-weight: 500;">{{ file.name }}</p>
-              <p style="margin: 2px 0 0 0; color: #6b7280; font-size: 0.8rem;">{{ formatFileSize(file.size) }}</p>
+      <div *ngIf="selectedFiles.length > 0" class="modal-form-group">
+        <label class="modal-label">Selected Files ({{ selectedFiles.length }})</label>
+        <div class="selected-files-container">
+          <div *ngFor="let file of selectedFiles" class="file-row">
+            <div class="file-info">
+              <p>{{ file.name }}</p>
+              <span>{{ formatFileSize(file.size) }}</span>
             </div>
           </div>
         </div>
       </div>
 
       <!-- Error Message -->
-      <p *ngIf="errorMessage" style="color: #d32f2f; font-size: 0.85rem; padding: 10px; background-color: #ffebee; border-radius: 4px; margin-bottom: 20px; border-left: 3px solid #d32f2f; margin: 0 0 20px 0;">{{ errorMessage }}</p>
+      <div *ngIf="errorMessage" class="error-banner">{{ errorMessage }}</div>
 
       <!-- Form Actions -->
-      <div class="form-actions" style="margin-top: 20px; display: flex; justify-content: flex-end; gap: 10px;">
-        <button class="btn-cancel" (click)="closeSubmitModal()" style="padding: 10px 20px; border: 1px solid #ddd; border-radius: 6px; background: white; color: #1a1d23; cursor: pointer; font-weight: 500;">Cancel</button>
-        <button class="btn-submit" (click)="confirmSubmitPermission()" [disabled]="!selectedApproverId || selectedFiles.length === 0" style="padding: 10px 20px; border: none; border-radius: 6px; background: #2563eb; color: white; cursor: pointer; font-weight: 500; opacity: {{ (!selectedApproverId || selectedFiles.length === 0) ? 0.5 : 1 }};">
+      <div class="form-actions">
+        <button class="btn-cancel" (click)="closeSubmitModal()">Cancel</button>
+        <button class="btn-submit" (click)="confirmSubmitPermission()" [disabled]="!selectedApproverId || selectedFiles.length === 0">
           Submit with {{ selectedFiles.length }} Document{{ selectedFiles.length !== 1 ? 's' : '' }}
         </button>
       </div>
