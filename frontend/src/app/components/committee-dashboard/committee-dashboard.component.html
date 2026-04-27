@@ -14,7 +14,7 @@
         <div class="user-avatar">{{ committeeName.charAt(0).toUpperCase() }}</div>
         <div class="user-meta">
           <span class="user-name">{{ committeeName }}</span>
-          <span class="user-role">Committee</span>
+          <span class="user-role">{{ committeeHead || 'Head: Not assigned' }}</span>
         </div>
       </div>
       <button class="btn-logout" (click)="logout()">Sign Out</button>

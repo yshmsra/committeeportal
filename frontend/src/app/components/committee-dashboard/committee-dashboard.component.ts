@@ -49,6 +49,7 @@ export class CommitteeDashboardComponent implements OnInit, OnDestroy {
 
   committeeId: number = 1;
   committeeName: string = 'Committee';
+  committeeHead: string = '';
 
   // Data
   events: Event[] = [];
@@ -101,8 +102,36 @@ export class CommitteeDashboardComponent implements OnInit, OnDestroy {
   ) {}
 
   ngOnInit(): void {
+    // CRITICAL: Validate authentication before loading any data
+    this.authService.validateAuthOnInit().subscribe({
+      next: (isValid) => {
+        if (!isValid) {
+          console.warn('Authentication validation failed on page refresh');
+          this.router.navigate(['/login']);
+          return;
+        }
+
+        // Auth is valid, proceed with initialization
+        this.initializeDashboard();
+      },
+      error: (err) => {
+        console.warn('Authentication validation error, attempting to load with cached session:', err);
+        // Even if validation fails, if user has a session token, try to load
+        // The actual API calls will fail if the token is truly invalid
+        if (this.authService.isAuthenticated()) {
+          this.initializeDashboard();
+        } else {
+          console.error('No valid session found');
+          this.router.navigate(['/login']);
+        }
+      }
+    });
+  }
+
+  private initializeDashboard(): void {
     this.committeeId = this.authService.getCommitteeId();
     this.committeeName = this.authService.getUserName();
+    this.loadCommitteeDetails();
     this.loadData();
     this.loadVenues();
     this.loadApprovers();
@@ -173,6 +202,19 @@ export class CommitteeDashboardComponent implements OnInit, OnDestroy {
       .subscribe({
         next: (approvers) => { this.approvers = approvers || []; },
         error: (err) => console.error('Could not load approvers', err)
+      });
+  }
+
+  loadCommitteeDetails(): void {
+    this.http.get<any>(`${this.BASE}/api/committees/${this.committeeId}`)
+      .subscribe({
+        next: (committee) => {
+          if (committee) {
+            this.committeeName = committee.committeeName || this.committeeName;
+            this.committeeHead = committee.headOfCommittee || '';
+          }
+        },
+        error: (err) => console.error('Failed to load committee details:', err)
       });
   }
 

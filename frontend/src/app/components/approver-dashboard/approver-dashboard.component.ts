@@ -69,6 +69,33 @@ export class ApproverDashboardComponent implements OnInit, OnDestroy {
   ) {}
 
   ngOnInit(): void {
+    // CRITICAL: Validate authentication before loading any data
+    this.authService.validateAuthOnInit().subscribe({
+      next: (isValid) => {
+        if (!isValid) {
+          console.warn('Authentication validation failed on page refresh');
+          this.router.navigate(['/login']);
+          return;
+        }
+
+        // Auth is valid, proceed with initialization
+        this.initializeDashboard();
+      },
+      error: (err) => {
+        console.warn('Authentication validation error, attempting to load with cached session:', err);
+        // Even if validation fails, if user has a session token, try to load
+        // The actual API calls will fail if the token is truly invalid
+        if (this.authService.isAuthenticated()) {
+          this.initializeDashboard();
+        } else {
+          console.error('No valid session found');
+          this.router.navigate(['/login']);
+        }
+      }
+    });
+  }
+
+  private initializeDashboard(): void {
     this.approverId = this.authService.getApproverId();
     this.approverName = this.authService.getUserName();
     this.loadApplications();
