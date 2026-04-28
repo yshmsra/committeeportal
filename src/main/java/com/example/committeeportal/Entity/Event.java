@@ -2,7 +2,7 @@ package com.example.committeeportal.Entity;
 import java.time.LocalDate;
 import java.time.LocalTime;
 
-import com.fasterxml.jackson.annotation.JsonBackReference;
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.fasterxml.jackson.annotation.JsonProperty;
 
 import jakarta.persistence.Column;
@@ -49,7 +49,7 @@ public class Event{
 
     //foreign key to Committee
    @ManyToOne(fetch = jakarta.persistence.FetchType.EAGER)
-   @JsonBackReference
+   @JsonIgnoreProperties("events")
     @JoinColumn(name = "committee_id", referencedColumnName = "id")
     private Committee committee;
     
