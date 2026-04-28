@@ -2,7 +2,7 @@ package com.example.committeeportal.Entity;
 
 import java.util.List;
 
-import com.fasterxml.jackson.annotation.JsonManagedReference;
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
@@ -34,7 +34,7 @@ public class Committee {
     private String password;
     
    @OneToMany(mappedBy = "committee")
-   @JsonManagedReference
+   @JsonIgnoreProperties("committee")
    private List<Event> events;
    
     
