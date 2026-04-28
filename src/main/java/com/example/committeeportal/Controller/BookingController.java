@@ -65,6 +65,12 @@ public class BookingController {
                 venue.getVenueName(), date, newStart, newEnd);
         return true;
     }
+
+    private boolean isDurationValid(LocalTime start, LocalTime end) {
+        if (start == null || end == null) return false;
+        long durationMinutes = java.time.Duration.between(start, end).toMinutes();
+        return durationMinutes > 0 && durationMinutes <= 180; // Max 3 hours (180 minutes)
+    }
     
     @Operation(summary = "Get all booking")
     @GetMapping
@@ -101,6 +107,13 @@ public ResponseEntity<?> createBooking(@RequestBody Booking booking) {
                     logger.warn("Venue already booked for requested slot: {}", venue.getVenueName());
                     return ResponseEntity.status(HttpStatus.BAD_REQUEST)
                         .body("Venue is already booked for this time slot");
+                }
+
+                // Validate duration (max 3 hours)
+                if (!isDurationValid(booking.getStartTime(), booking.getEndTime())) {
+                    logger.warn("Invalid booking duration: {} - {}", booking.getStartTime(), booking.getEndTime());
+                    return ResponseEntity.status(HttpStatus.BAD_REQUEST)
+                        .body("Booking duration must be between 1 and 3 hours");
                 }
 
                 booking.setVenue(venue);
@@ -152,6 +165,13 @@ public ResponseEntity<?> updateBooking(@PathVariable Long id, @RequestBody Booki
                     logger.warn("Failed to update booking: Venue not available");
                     return ResponseEntity.status(HttpStatus.BAD_REQUEST)
                         .body("Venue is already booked for this time slot");
+                }
+
+                // Validate duration (max 3 hours)
+                if (!isDurationValid(bookingDetails.getStartTime(), bookingDetails.getEndTime())) {
+                    logger.warn("Invalid booking duration on update: {} - {}", bookingDetails.getStartTime(), bookingDetails.getEndTime());
+                    return ResponseEntity.status(HttpStatus.BAD_REQUEST)
+                        .body("Booking duration must be between 1 and 3 hours");
                 }
 
                 booking.setVenue(newVenue);
@@ -227,6 +247,13 @@ public ResponseEntity<Booking> partialUpdateBooking(@PathVariable Long id, @Requ
             if (booking.getVenue() != null &&
                 !isVenueAvailable(booking.getVenue(), booking.getEventDate(), newStart, newEnd)) {
                 logger.warn("Venue not available for partial update on booking ID: {}", id);
+                return ResponseEntity.status(HttpStatus.BAD_REQUEST)
+                        .body(null);
+            }
+
+            // Validate duration (max 3 hours)
+            if (!isDurationValid(newStart, newEnd)) {
+                logger.warn("Invalid booking duration on partial update: {} - {}", newStart, newEnd);
                 return ResponseEntity.status(HttpStatus.BAD_REQUEST)
                         .body(null);
             }

@@ -316,16 +316,16 @@
                     class="time-slot-btn"
                     [class.available]="slot.available"
                     [class.booked]="!slot.available"
-                    [class.selected]="isTimeSlotSelected(slot) && newEvent.venueId === venueAvail.venueId"
+                    [class.selected]="isTimeSlotSelected(slot, venueAvail.venueId)"
                     [disabled]="!slot.available"
-                    (click)="selectTimeSlot(slot); newEvent.venueId = venueAvail.venueId;"
+                    (click)="selectTimeSlot(slot, venueAvail.venueId)"
                     [title]="slot.available ? 'Click to select this slot' : ('Booked by: ' + slot.bookedByCommittee)"
                   >
                     <div class="slot-time">{{ slot.startTime }} - {{ slot.endTime }}</div>
                     <div *ngIf="!slot.available && slot.bookedByCommittee" class="booked-by">
                       {{ slot.bookedByCommittee }}
                     </div>
-                    <div *ngIf="isTimeSlotSelected(slot) && newEvent.venueId === venueAvail.venueId" class="slot-checkmark">✓</div>
+                    <div *ngIf="isTimeSlotSelected(slot, venueAvail.venueId)" class="slot-checkmark">✓</div>
                   </button>
                 </div>
               </div>

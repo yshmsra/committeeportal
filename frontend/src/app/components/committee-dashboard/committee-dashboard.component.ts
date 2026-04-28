@@ -272,16 +272,82 @@ export class CommitteeDashboardComponent implements OnInit, OnDestroy {
 
   // ─── New Event ──────────────────────────
   // ─── Time Slot Selection ────────────────
-  selectTimeSlot(slot: any): void {
+  selectTimeSlot(slot: any, venueId: number): void {
     if (!slot.available) return;
     
-    this.newEvent.startTime = slot.startTime;
-    this.newEvent.endTime = slot.endTime;
+    // If different venue, reset
+    if (this.newEvent.venueId !== venueId) {
+      this.newEvent.venueId = venueId;
+      this.newEvent.startTime = slot.startTime;
+      this.newEvent.endTime = slot.endTime;
+      this.eventFormError = '';
+      return;
+    }
+
+    // Toggle selection if exactly this single slot is clicked again
+    if (this.newEvent.startTime === slot.startTime && this.newEvent.endTime === slot.endTime) {
+      this.newEvent.startTime = '';
+      this.newEvent.endTime = '';
+      this.eventFormError = '';
+      return;
+    }
+
+    // If no selection, just set it
+    if (!this.newEvent.startTime || !this.newEvent.endTime) {
+      this.newEvent.startTime = slot.startTime;
+      this.newEvent.endTime = slot.endTime;
+      this.eventFormError = '';
+      return;
+    }
+
+    // Handle consecutive selection
+    const currentStart = this.newEvent.startTime;
+    const currentEnd = this.newEvent.endTime;
+    const newStart = slot.startTime;
+    const newEnd = slot.endTime;
+
+    if (newStart === currentEnd) {
+      // Append after
+      const totalHours = this.calculateDurationHours(currentStart, newEnd);
+      if (totalHours <= 3) {
+        this.newEvent.endTime = newEnd;
+      } else {
+        // Exceeds 3 hours, start new selection with this slot
+        this.newEvent.startTime = newStart;
+        this.newEvent.endTime = newEnd;
+      }
+    } else if (newEnd === currentStart) {
+      // Prepend before
+      const totalHours = this.calculateDurationHours(newStart, currentEnd);
+      if (totalHours <= 3) {
+        this.newEvent.startTime = newStart;
+      } else {
+        // Exceeds 3 hours
+        this.newEvent.startTime = newStart;
+        this.newEvent.endTime = newEnd;
+      }
+    } else {
+      // Not adjacent, start new selection
+      this.newEvent.startTime = newStart;
+      this.newEvent.endTime = newEnd;
+    }
+    
     this.eventFormError = '';
   }
 
-  isTimeSlotSelected(slot: any): boolean {
-    return this.newEvent.startTime === slot.startTime && this.newEvent.endTime === slot.endTime;
+  private calculateDurationHours(start: string, end: string): number {
+    if (!start || !end) return 0;
+    const parse = (t: string) => {
+      const p = t.split(':').map(Number);
+      return p[0] + (p[1] || 0) / 60;
+    };
+    return parse(end) - parse(start);
+  }
+
+  isTimeSlotSelected(slot: any, venueId: number): boolean {
+    if (this.newEvent.venueId !== venueId) return false;
+    if (!this.newEvent.startTime || !this.newEvent.endTime) return false;
+    return slot.startTime >= this.newEvent.startTime && slot.endTime <= this.newEvent.endTime;
   }
 
   submitNewEvent(): void {
