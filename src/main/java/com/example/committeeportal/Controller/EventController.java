@@ -97,31 +97,6 @@ public class EventController{
         Event createdEvent = eventRepository.save(event);
         logger.info("Event created successfully with ID: {}", createdEvent.getEventId());
         
-        // If venue and time slots are provided, create a booking entry
-        if (event.getVenue() != null && event.getVenue().getVenueId() != null &&
-            event.getStartTime() != null && event.getEndTime() != null) {
-            try {
-                Booking booking = new Booking();
-                booking.setEventName(event.getEventName());
-                booking.setEventDescription(event.getDescription());
-                booking.setVenueName(event.getVenue().getVenueName());
-                booking.setVenueLocation(event.getVenue().getVenueLocation());
-                booking.setBookingDate(LocalDate.now());
-                booking.setEventDate(event.getEventDate());
-                booking.setStartTime(event.getStartTime());
-                booking.setEndTime(event.getEndTime());
-                booking.setEvent(createdEvent);
-                booking.setVenue(event.getVenue());
-                booking.setStatus("BOOKED");
-                
-                bookingRepository.save(booking);
-                logger.info("Booking created successfully for event: {}", createdEvent.getEventId());
-            } catch (Exception e) {
-                logger.error("Error creating booking for event {}: {}", createdEvent.getEventId(), e.getMessage());
-                // Don't fail the event creation if booking fails
-            }
-        }
-        
         return ResponseEntity.ok(createdEvent);
     }
     

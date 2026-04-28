@@ -217,10 +217,10 @@ export class ApproverDashboardComponent implements OnInit, OnDestroy {
         setTimeout(() => this.successMessage = '', 4000);
       },
       error: (err) => {
-        this.errorMessage = `Failed to ${status.toLowerCase()} application. Please try again.`;
+        this.errorMessage = err.error?.message || 'Failed to submit decision. Please try again.';
+        console.error('Approval error:', err);
+        setTimeout(() => this.errorMessage = '', 5000);
         this.isSubmitting = false;
-        console.error('Decision error:', err);
-        setTimeout(() => this.errorMessage = '', 4000);
       }
     });
   }

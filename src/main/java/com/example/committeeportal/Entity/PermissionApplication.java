@@ -37,6 +37,9 @@ public class PermissionApplication {
     @Column(name = "status")
     private String status;
 
+    @Column(name = "remarks", columnDefinition = "TEXT")
+    private String remarks;
+
     // Getters and Setters
     public Long getApplicationId() { return applicationId; }
     public void setApplicationId(Long applicationId) { this.applicationId = applicationId; }
@@ -55,4 +58,7 @@ public class PermissionApplication {
 
     public String getStatus() { return status; }
     public void setStatus(String status) { this.status = status; }
+
+    public String getRemarks() { return remarks; }
+    public void setRemarks(String remarks) { this.remarks = remarks; }
 }

@@ -521,14 +521,27 @@
       <!-- Approval status info banner -->
       <div class="status-info-banner" [ngClass]="'banner-' + getStatusClass(selectedApp.status)">
         <ng-container *ngIf="(selectedApp.status || '').toUpperCase() === 'APPROVED'">
-          Your permission application has been approved. You may proceed with the event.
+          <div class="banner-title">✅ Approved</div>
+          <p>Your permission application has been approved. You may proceed with the event.</p>
         </ng-container>
         <ng-container *ngIf="(selectedApp.status || '').toUpperCase() === 'REJECTED'">
-          Your permission application was rejected. Please contact the approver for further information.
+          <div class="banner-title">❌ Rejected</div>
+          <p>Your permission application was rejected.</p>
         </ng-container>
         <ng-container *ngIf="(selectedApp.status || '').toUpperCase() === 'SUBMITTED' || (selectedApp.status || '').toUpperCase() === 'PENDING'">
-          Your application is under review. You will be notified once a decision is made.
+          <div class="banner-title">⏳ Under Review</div>
+          <p>Your application is under review. You will be notified once a decision is made.</p>
         </ng-container>
+        
+        <!-- Approver Remarks -->
+        <div *ngIf="selectedApp.remarks" class="approver-remarks">
+          <p class="remarks-label">Approver Feedback:</p>
+          <p class="remarks-text">"{{ selectedApp.remarks }}"</p>
+        </div>
+        <div *ngIf="!selectedApp.remarks && (selectedApp.status || '').toUpperCase() === 'REJECTED'" class="approver-remarks">
+          <p class="remarks-label">Approver Feedback:</p>
+          <p class="remarks-text no-remarks">No specific feedback provided by the approver.</p>
+        </div>
       </div>
 
     </div>

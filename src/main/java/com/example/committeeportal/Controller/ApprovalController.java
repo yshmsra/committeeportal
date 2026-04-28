@@ -130,7 +130,7 @@ public class ApprovalController {
     // POST create approval for a specific permission application by a specific approver
     @Operation(summary = "Create  approval for specific permission application")
     @PostMapping("/{applicationId}/approver/{approverId}")
-    public ResponseEntity<Approval> createApprovalForApplication(
+    public ResponseEntity<?> createApprovalForApplication(
             @PathVariable Long applicationId,
             @PathVariable Long approverId,
             @RequestBody Approval approvalDetails) {
@@ -141,20 +141,25 @@ public class ApprovalController {
             
             if (applicationOpt.isEmpty() || approverOpt.isEmpty()) {
                 logger.warn("Either Application ID {} or Approver ID {} not found", applicationId, approverId);
-                return ResponseEntity.status(HttpStatus.NOT_FOUND).build();
+                return ResponseEntity.status(HttpStatus.NOT_FOUND).body(new ErrorResponse("Application or Approver not found"));
             }
             
             PermissionApplication application = applicationOpt.get();
             Approver approver = approverOpt.get();
-            
-            // Update application status
             String newStatus = approvalDetails.getApprovalStatus();
+            Event event = application.getEvent();
+
+            // Check for conflict
+            if (application.getStatus() != null && application.getStatus().equals(newStatus)) {
+                return ResponseEntity.status(HttpStatus.CONFLICT).body(new ErrorResponse("Application status is already set to " + newStatus));
+            }
+
+            // Update application status
             application.setStatus(newStatus);
             permissionApplicationRepository.save(application);
             logger.debug("Updated application {} status to {}", applicationId, newStatus);
             
             // Sync status with Event
-            Event event = application.getEvent();
             if (event != null) {
                 event.setStatus(newStatus);
                 eventRepository.save(event);

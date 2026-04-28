@@ -14,7 +14,11 @@ import org.springframework.stereotype.Repository;
 public interface BookingRepository extends JpaRepository<Booking, Long> {
     // Custom query methods can be added here if needed
     @Query("SELECT b FROM Booking b WHERE b.venue.venueId = :venueId AND b.eventDate = :eventDate")
-List<Booking> findBookingsByVenueAndDate(@Param("venueId") Long venueId,
-                                         @Param("eventDate") LocalDate eventDate);
+    List<Booking> findBookingsByVenueAndDate(@Param("venueId") Long venueId,
+                                             @Param("eventDate") LocalDate eventDate);
+
+    java.util.Optional<Booking> findByEvent_EventId(Long eventId);
+    
+    void deleteByEvent_EventId(Long eventId);
 
 }

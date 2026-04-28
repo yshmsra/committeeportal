@@ -25,6 +25,7 @@ interface PermissionApplication {
   uploadDate: string;
   permissionDoc: string;
   status: string;
+  remarks?: string;
   attachedDocuments?: PermissionDocument[];
 }
 
