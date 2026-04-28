@@ -2,7 +2,15 @@ package com.example.committeeportal.Entity;
 
 import java.util.List;
 
-import jakarta.persistence.*;
+import com.fasterxml.jackson.annotation.JsonIgnore;
+
+import jakarta.persistence.Column;
+import jakarta.persistence.Entity;
+import jakarta.persistence.GeneratedValue;
+import jakarta.persistence.GenerationType;
+import jakarta.persistence.Id;
+import jakarta.persistence.OneToMany;
+import jakarta.persistence.Table;
 
 @Entity
 @Table(name = "approver")
@@ -28,6 +36,7 @@ public class Approver {
     private String password;
     
 @OneToMany(mappedBy = "approver")
+    @JsonIgnore
     private List<Approval> approvals;
 
     // Getters and setters

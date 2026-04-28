@@ -9,7 +9,7 @@ interface Event {
   eventDate: string;
   venue?: { venueName: string };
   committee?: { committeeName: string };
-  expectedAttendees?: number;
+  expectedParticipants?: number;
   description?: string;
 }
 
@@ -99,8 +99,7 @@ export class ApproverDashboardComponent implements OnInit, OnDestroy {
     this.approverId = this.authService.getApproverId();
     this.approverName = this.authService.getUserName();
     this.loadApplications();
-    // Poll for fresh data every 30 seconds so other users' changes are reflected
-    this.pollInterval = setInterval(() => this.loadApplications(), this.POLL_MS);
+    // Auto-refresh disabled - users will manually refresh when needed
   }
 
   ngOnDestroy(): void {

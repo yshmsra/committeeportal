@@ -1,8 +1,8 @@
 package com.example.committeeportal.Entity;
 import java.time.LocalDate;
+import java.time.LocalTime;
 
 import com.fasterxml.jackson.annotation.JsonBackReference;
-
 import com.fasterxml.jackson.annotation.JsonProperty;
 
 import jakarta.persistence.Column;
@@ -28,9 +28,18 @@ public class Event{
 
     @Column(name = "event_date", nullable = false)
     private LocalDate eventDate;
+    
+    @Column(name = "start_time")
+    private LocalTime startTime;
+    
+    @Column(name = "end_time")
+    private LocalTime endTime;
 
     @Column(name="expected_participants")
     private Integer expectedParticipants;
+    
+    @Column(name = "description", columnDefinition = "TEXT")
+    private String description;
 
     @Column(name="created_date")
     private LocalDate createdDate;
@@ -39,9 +48,9 @@ public class Event{
     private String status;
 
     //foreign key to Committee
-   @ManyToOne
+   @ManyToOne(fetch = jakarta.persistence.FetchType.EAGER)
+   @JsonBackReference
     @JoinColumn(name = "committee_id", referencedColumnName = "id")
-    @JsonBackReference
     private Committee committee;
     
     //foreign key to Venue
@@ -69,9 +78,18 @@ public class Event{
 
     public LocalDate getEventDate() { return eventDate; }
     public void setEventDate(LocalDate eventDate) { this.eventDate = eventDate; }
+    
+    public LocalTime getStartTime() { return startTime; }
+    public void setStartTime(LocalTime startTime) { this.startTime = startTime; }
+    
+    public LocalTime getEndTime() { return endTime; }
+    public void setEndTime(LocalTime endTime) { this.endTime = endTime; }
 
     public Integer getExpectedParticipants() { return expectedParticipants; }
     public void setExpectedParticipants(Integer expectedParticipants) { this.expectedParticipants = expectedParticipants; }
+    
+    public String getDescription() { return description; }
+    public void setDescription(String description) { this.description = description; }
 
     public LocalDate getCreatedDate() { return createdDate; }
     public void setCreatedDate(LocalDate createdDate) { this.createdDate = createdDate; }

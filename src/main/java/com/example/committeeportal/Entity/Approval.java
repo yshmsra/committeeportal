@@ -2,6 +2,8 @@ package com.example.committeeportal.Entity;
 
 import java.time.LocalDate;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
+
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.GeneratedValue;
@@ -22,6 +24,7 @@ public class Approval {
 
     @ManyToOne
     @JoinColumn(name = "application_id", referencedColumnName = "application_id")
+    @JsonIgnore
     private PermissionApplication permissionApplication;
 
     @ManyToOne

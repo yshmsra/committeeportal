@@ -56,6 +56,9 @@ export class CommitteeDashboardComponent implements OnInit, OnDestroy {
   applications: PermissionApplication[] = [];
   venues: Venue[] = [];
   approvers: any[] = [];
+  venueAvailability: any[] = [];
+  isLoadingAvailability: boolean = false;
+  availabilityError: string = '';
 
   // UI State
   isLoading: boolean = false;
@@ -69,6 +72,9 @@ export class CommitteeDashboardComponent implements OnInit, OnDestroy {
   newEvent = {
     eventName: '',
     eventDate: '',
+    startTime: '',
+    endTime: '',
+    description: '',
     expectedParticipants: null as number | null,
     venueId: null as number | null
   };
@@ -135,7 +141,7 @@ export class CommitteeDashboardComponent implements OnInit, OnDestroy {
     this.loadData();
     this.loadVenues();
     this.loadApprovers();
-    this.pollInterval = setInterval(() => this.loadData(), this.POLL_MS);
+    // Auto-refresh disabled - users will manually refresh when needed
   }
 
   ngOnDestroy(): void {
@@ -205,6 +211,38 @@ export class CommitteeDashboardComponent implements OnInit, OnDestroy {
       });
   }
 
+  // Load venue availability for a specific date
+  loadVenueAvailability(): void {
+    if (!this.newEvent.eventDate) {
+      this.venueAvailability = [];
+      this.availabilityError = '';
+      return;
+    }
+
+    this.isLoadingAvailability = true;
+    this.availabilityError = '';
+    console.log('Loading venue availability for date:', this.newEvent.eventDate);
+
+    this.http.get<any[]>(`${this.BASE}/api/venues/availability`, {
+      params: { date: this.newEvent.eventDate }
+    }).subscribe({
+      next: (availability) => {
+        this.venueAvailability = availability || [];
+        this.isLoadingAvailability = false;
+        console.log('Venue availability loaded:', this.venueAvailability);
+        if (this.venueAvailability.length === 0) {
+          this.availabilityError = 'No venues available for this date.';
+        }
+      },
+      error: (err) => {
+        console.error('Failed to load venue availability:', err);
+        this.isLoadingAvailability = false;
+        this.availabilityError = 'Failed to load venue availability. Please try again.';
+        this.venueAvailability = [];
+      }
+    });
+  }
+
   loadCommitteeDetails(): void {
     this.http.get<any>(`${this.BASE}/api/committees/${this.committeeId}`)
       .subscribe({
@@ -232,6 +270,19 @@ export class CommitteeDashboardComponent implements OnInit, OnDestroy {
   }
 
   // ─── New Event ──────────────────────────
+  // ─── Time Slot Selection ────────────────
+  selectTimeSlot(slot: any): void {
+    if (!slot.available) return;
+    
+    this.newEvent.startTime = slot.startTime;
+    this.newEvent.endTime = slot.endTime;
+    this.eventFormError = '';
+  }
+
+  isTimeSlotSelected(slot: any): boolean {
+    return this.newEvent.startTime === slot.startTime && this.newEvent.endTime === slot.endTime;
+  }
+
   submitNewEvent(): void {
     this.eventFormError = '';
     if (!this.newEvent.eventName.trim()) {
@@ -251,11 +302,28 @@ export class CommitteeDashboardComponent implements OnInit, OnDestroy {
       return;
     }
 
+    // Validate time slots if venue is selected
+    if (this.newEvent.venueId) {
+      if (!this.newEvent.startTime) {
+        this.eventFormError = 'Start time is required when a venue is selected.';
+        return;
+      }
+      if (!this.newEvent.endTime) {
+        this.eventFormError = 'End time is required when a venue is selected.';
+        return;
+      }
+      if (this.newEvent.startTime >= this.newEvent.endTime) {
+        this.eventFormError = 'End time must be after start time.';
+        return;
+      }
+    }
+
     this.isSubmittingEvent = true;
 
     const payload: any = {
       eventName: this.newEvent.eventName,
       eventDate: this.newEvent.eventDate,
+      description: this.newEvent.description,
       expectedParticipants: this.newEvent.expectedParticipants,
       status: 'Pending',
       committee: { id: this.committeeId }
@@ -263,13 +331,16 @@ export class CommitteeDashboardComponent implements OnInit, OnDestroy {
 
     if (this.newEvent.venueId) {
       payload.venue = { venueId: this.newEvent.venueId };
+      payload.startTime = this.newEvent.startTime;
+      payload.endTime = this.newEvent.endTime;
     }
 
     this.http.post<Event>(`${this.BASE}/events`, payload).subscribe({
       next: (createdEvent) => {
         this.isSubmittingEvent = false;
         this.successMessage = `Event "${createdEvent.eventName}" created successfully.`;
-        this.newEvent = { eventName: '', eventDate: '', expectedParticipants: null, venueId: null };
+        this.newEvent = { eventName: '', eventDate: '', startTime: '', endTime: '', description: '', expectedParticipants: null, venueId: null };
+        this.venueAvailability = [];
         this.loadData();
         this.setTab('events');
         setTimeout(() => this.successMessage = '', 4000);

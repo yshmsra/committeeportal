@@ -29,6 +29,7 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
             throws ServletException, IOException {
         try {
             String token = extractTokenFromRequest(request);
+            logger.info("JWT Filter - Method: {}, Path: {}, Token present: {}", request.getMethod(), request.getRequestURI(), token != null);
 
             if (token != null && jwtUtil.validateToken(token)) {
                 String email = jwtUtil.extractEmail(token);
@@ -44,6 +45,8 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
                     SecurityContextHolder.getContext().setAuthentication(authToken);
                     logger.info("JWT token validated for user: {}", email);
                 }
+            } else if (token != null) {
+                logger.warn("JWT token validation failed for path: {}", request.getRequestURI());
             }
         } catch (Exception e) {
             logger.error("Error processing JWT token: {}", e.getMessage());
@@ -57,9 +60,12 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
      */
     private String extractTokenFromRequest(HttpServletRequest request) {
         String bearerToken = request.getHeader("Authorization");
+        logger.debug("Authorization header value: {}", bearerToken);
         if (bearerToken != null && bearerToken.startsWith("Bearer ")) {
+            logger.debug("Bearer token found, extracting...");
             return bearerToken.substring(7);
         }
+        logger.debug("No bearer token found in request");
         return null;
     }
 }

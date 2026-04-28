@@ -240,6 +240,7 @@
               id="eventDate"
               name="eventDate"
               [(ngModel)]="newEvent.eventDate"
+              (change)="loadVenueAvailability()"
               [min]="getTodayDateString()"
             />
           </div>
@@ -265,6 +266,106 @@
                 {{ v.venueName }}{{ v.capacity ? ' (Cap: ' + v.capacity + ')' : '' }}
               </option>
             </select>
+          </div>
+        </div>
+
+        <div class="form-row">
+          <div class="form-group full-width">
+            <label for="description">Event Description (Optional)</label>
+            <textarea
+              id="description"
+              name="description"
+              [(ngModel)]="newEvent.description"
+              placeholder="Describe your event, activities, or any special requirements..."
+              rows="4"
+            ></textarea>
+          </div>
+        </div>
+
+        <!-- Venue Availability View (Show First) -->
+        <div *ngIf="newEvent.eventDate" class="venue-availability-section">
+          <h3>📅 Venue Availability for {{ newEvent.eventDate | date:'MMM dd, yyyy' }}</h3>
+          
+          <!-- Loading State -->
+          <div *ngIf="isLoadingAvailability" class="loading-state">
+            <div class="spinner"></div>
+            <p>Loading available venues and time slots...</p>
+          </div>
+
+          <!-- Error State -->
+          <div *ngIf="availabilityError && !isLoadingAvailability" class="error-message">
+            ⚠️ {{ availabilityError }}
+          </div>
+
+          <!-- Availability Grid -->
+          <div *ngIf="!isLoadingAvailability && venueAvailability.length > 0" class="availability-grid">
+            <div *ngFor="let venueAvail of venueAvailability" class="venue-card">
+              <div class="venue-header">
+                <h4>{{ venueAvail.venueName }}</h4>
+                <span class="venue-capacity" *ngIf="venueAvail.capacity">👥 {{ venueAvail.capacity }} capacity</span>
+              </div>
+              <div class="venue-location" *ngIf="venueAvail.venueLocation">
+                📍 {{ venueAvail.venueLocation }}
+              </div>
+              <div class="time-slots">
+                <div class="time-slot-header">Available Time Slots:</div>
+                <div class="time-slot-list">
+                  <button
+                    *ngFor="let slot of venueAvail.timeSlots"
+                    type="button"
+                    class="time-slot-btn"
+                    [class.available]="slot.available"
+                    [class.booked]="!slot.available"
+                    [class.selected]="isTimeSlotSelected(slot) && newEvent.venueId === venueAvail.venueId"
+                    [disabled]="!slot.available"
+                    (click)="selectTimeSlot(slot); newEvent.venueId = venueAvail.venueId;"
+                    [title]="slot.available ? 'Click to select this slot' : ('Booked by: ' + slot.bookedByCommittee)"
+                  >
+                    <div class="slot-time">{{ slot.startTime }} - {{ slot.endTime }}</div>
+                    <div *ngIf="!slot.available && slot.bookedByCommittee" class="booked-by">
+                      {{ slot.bookedByCommittee }}
+                    </div>
+                    <div *ngIf="isTimeSlotSelected(slot) && newEvent.venueId === venueAvail.venueId" class="slot-checkmark">✓</div>
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Time Slot Selection (Show After Availability) -->
+        <div *ngIf="newEvent.venueId && newEvent.eventDate && !isLoadingAvailability" class="form-section">
+          <h3>Select Time Slot</h3>
+          <p class="helper-text">Time automatically filled when you click a slot above, or enter manually</p>
+          
+          <!-- Manual Time Input (compact) -->
+          <div class="time-input-section">
+            <div class="form-row">
+              <div class="form-group">
+                <label for="startTime">Start Time <span class="required">*</span></label>
+                <input
+                  type="time"
+                  id="startTime"
+                  name="startTime"
+                  [(ngModel)]="newEvent.startTime"
+                  class="time-input-field"
+                />
+              </div>
+              <div class="time-separator">→</div>
+              <div class="form-group">
+                <label for="endTime">End Time <span class="required">*</span></label>
+                <input
+                  type="time"
+                  id="endTime"
+                  name="endTime"
+                  [(ngModel)]="newEvent.endTime"
+                  class="time-input-field"
+                />
+              </div>
+            </div>
+            <div *ngIf="newEvent.startTime && newEvent.endTime" class="selected-time-display">
+              ✓ Selected: {{ newEvent.startTime }} - {{ newEvent.endTime }}
+            </div>
           </div>
         </div>
 

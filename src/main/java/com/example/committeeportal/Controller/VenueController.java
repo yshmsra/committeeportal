@@ -1,10 +1,13 @@
 package com.example.committeeportal.Controller;
 
+import java.time.LocalDate;
+import java.time.LocalTime;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
+
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -19,7 +22,11 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
+import com.example.committeeportal.DTO.TimeSlotDetail;
+import com.example.committeeportal.DTO.VenueAvailabilityDTO;
+import com.example.committeeportal.Entity.Booking;
 import com.example.committeeportal.Entity.Venue;
+import com.example.committeeportal.Repository.BookingRepository;
 import com.example.committeeportal.Repository.VenueRepository;
 
 import io.swagger.v3.oas.annotations.Operation;
@@ -33,6 +40,9 @@ public class VenueController {
     
     @Autowired
     private VenueRepository venueRepository;
+    
+    @Autowired
+    private BookingRepository bookingRepository;
     
     // GET - Get all venues
     @Operation(summary = "Get all venue")
@@ -240,6 +250,76 @@ public ResponseEntity<List<Venue>> searchVenuesByLocation(@PathVariable String l
             return ResponseEntity.ok(venues);
         } catch (Exception e) {
             logger.error("Error fetching venues by capacity {}: {}", minCapacity, e.getMessage(), e);
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build();
+        }
+    }
+
+    // GET - Get available time slots for all venues on a specific date
+    @Operation(summary = "Get available and booked time slots for all venues on a specific date with committee details")
+    @GetMapping("/availability")
+    public ResponseEntity<List<VenueAvailabilityDTO>> getVenueAvailability(@RequestParam String date) {
+        logger.info("Fetching venue availability for date: {}", date);
+        try {
+            LocalDate eventDate = LocalDate.parse(date);
+            List<Venue> allVenues = venueRepository.findAll();
+            List<VenueAvailabilityDTO> availabilityList = new ArrayList<>();
+
+            // Default time slots: 8 AM to 7 PM in 1-hour slots
+            LocalTime dayStart = LocalTime.of(8, 0);
+            LocalTime dayEnd = LocalTime.of(19, 0);
+
+            for (Venue venue : allVenues) {
+                List<TimeSlotDetail> timeSlots = new ArrayList<>();
+                LocalTime currentSlot = dayStart;
+
+                // Get all bookings for this venue on the given date
+                List<Booking> bookings = bookingRepository.findBookingsByVenueAndDate(venue.getVenueId(), eventDate);
+
+                // Generate 1-hour time slots
+                while (currentSlot.isBefore(dayEnd)) {
+                    LocalTime slotEnd = currentSlot.plusHours(1);
+
+                    // Check if this slot is booked
+                    boolean isAvailable = true;
+                    String bookedByCommittee = null;
+                    String bookedEventName = null;
+                    
+                    for (Booking booking : bookings) {
+                        if (currentSlot.isBefore(booking.getEndTime()) && booking.getStartTime().isBefore(slotEnd)) {
+                            isAvailable = false;
+                            bookedEventName = booking.getEventName();
+                            // Get committee name from the event
+                            if (booking.getEvent() != null && booking.getEvent().getCommittee() != null) {
+                                bookedByCommittee = booking.getEvent().getCommittee().getCommitteeName();
+                            }
+                            break;
+                        }
+                    }
+
+                    if (isAvailable) {
+                        timeSlots.add(new TimeSlotDetail(currentSlot, slotEnd, true));
+                    } else {
+                        timeSlots.add(new TimeSlotDetail(currentSlot, slotEnd, false, bookedByCommittee, bookedEventName));
+                    }
+                    
+                    currentSlot = slotEnd;
+                }
+
+                VenueAvailabilityDTO dto = new VenueAvailabilityDTO(
+                        venue.getVenueId(),
+                        venue.getVenueName(),
+                        venue.getVenueLocation(),
+                        venue.getCapacity(),
+                        venue.getFacilities(),
+                        timeSlots
+                );
+                availabilityList.add(dto);
+            }
+
+            logger.info("Found availability for {} venues on {}", availabilityList.size(), eventDate);
+            return ResponseEntity.ok(availabilityList);
+        } catch (Exception e) {
+            logger.error("Error fetching venue availability: {}", e.getMessage(), e);
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build();
         }
     }

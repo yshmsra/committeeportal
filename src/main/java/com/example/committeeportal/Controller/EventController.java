@@ -5,6 +5,7 @@ import java.util.Optional;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.DeleteMapping;
@@ -17,7 +18,9 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
+import com.example.committeeportal.Entity.Booking;
 import com.example.committeeportal.Entity.Event;
+import com.example.committeeportal.Repository.BookingRepository;
 import com.example.committeeportal.Repository.EventRepository;
 import com.example.committeeportal.ResponseBean.ErrorResponse;
 
@@ -30,6 +33,9 @@ import io.swagger.v3.oas.annotations.tags.Tag;
 public class EventController{
     private static final Logger logger = LoggerFactory.getLogger(EventController.class);
     private final EventRepository eventRepository;
+    
+    @Autowired
+    private BookingRepository bookingRepository;
 
     public EventController(EventRepository eventRepository) {
         this.eventRepository = eventRepository;
@@ -65,8 +71,57 @@ public class EventController{
                 .body(new ErrorResponse("Event date cannot be in the past. Please select a future date."));
         }
         
+        // Check for double-booking if venue and time slots are provided
+        if (event.getVenue() != null && event.getVenue().getVenueId() != null &&
+            event.getStartTime() != null && event.getEndTime() != null) {
+            
+            List<Booking> conflictingBookings = bookingRepository.findBookingsByVenueAndDate(
+                event.getVenue().getVenueId(), 
+                event.getEventDate()
+            );
+            
+            for (Booking existingBooking : conflictingBookings) {
+                // Check if time slots overlap
+                if (event.getStartTime().isBefore(existingBooking.getEndTime()) && 
+                    existingBooking.getStartTime().isBefore(event.getEndTime())) {
+                    logger.warn("Time slot conflict for venue {} on {}: {} - {} overlaps with existing booking",
+                        event.getVenue().getVenueId(), event.getEventDate(), 
+                        event.getStartTime(), event.getEndTime());
+                    return ResponseEntity
+                        .status(HttpStatus.CONFLICT)
+                        .body(new ErrorResponse("This time slot is already booked for the selected venue and date. Please choose a different time."));
+                }
+            }
+        }
+        
         Event createdEvent = eventRepository.save(event);
         logger.info("Event created successfully with ID: {}", createdEvent.getEventId());
+        
+        // If venue and time slots are provided, create a booking entry
+        if (event.getVenue() != null && event.getVenue().getVenueId() != null &&
+            event.getStartTime() != null && event.getEndTime() != null) {
+            try {
+                Booking booking = new Booking();
+                booking.setEventName(event.getEventName());
+                booking.setEventDescription(event.getDescription());
+                booking.setVenueName(event.getVenue().getVenueName());
+                booking.setVenueLocation(event.getVenue().getVenueLocation());
+                booking.setBookingDate(LocalDate.now());
+                booking.setEventDate(event.getEventDate());
+                booking.setStartTime(event.getStartTime());
+                booking.setEndTime(event.getEndTime());
+                booking.setEvent(createdEvent);
+                booking.setVenue(event.getVenue());
+                booking.setStatus("BOOKED");
+                
+                bookingRepository.save(booking);
+                logger.info("Booking created successfully for event: {}", createdEvent.getEventId());
+            } catch (Exception e) {
+                logger.error("Error creating booking for event {}: {}", createdEvent.getEventId(), e.getMessage());
+                // Don't fail the event creation if booking fails
+            }
+        }
+        
         return ResponseEntity.ok(createdEvent);
     }
     

@@ -50,6 +50,7 @@ public class SecurityConfig {
                         .requestMatchers("/api/approvers/register").permitAll()
                         .requestMatchers("/api/committees/reset-password").permitAll()
                         .requestMatchers("/api/approvers/reset-password").permitAll()
+                        .requestMatchers("/api/venues/availability").permitAll()
                         .requestMatchers("/permissions/submit-with-documents").permitAll()
                         .requestMatchers("/permissions/documents/download/**").permitAll()
                         .requestMatchers("/swagger-ui/**").permitAll()
