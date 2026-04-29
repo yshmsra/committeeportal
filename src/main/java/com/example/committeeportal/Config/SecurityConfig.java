@@ -56,6 +56,8 @@ public class SecurityConfig {
                         .requestMatchers("/swagger-ui/**").permitAll()
                         .requestMatchers("/v3/api-docs/**").permitAll()
                         .requestMatchers("/swagger-ui.html").permitAll()
+                        // Allow static frontend files
+                        .requestMatchers("/", "/index.html", "/*.js", "/*.css", "/assets/**", "/*.ico").permitAll()
                         // All other endpoints require authentication
                         .anyRequest().authenticated()
                 )
