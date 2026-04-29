@@ -36,7 +36,7 @@ export class ApproverDashboardComponent implements OnInit, OnDestroy {
   private readonly POLL_MS = 30000; // 30 seconds
 
   // Backend base URL – matches Spring Boot (no /api prefix for /permissions)
-  private readonly BASE = 'http://localhost:8080';
+  private readonly BASE = ''; // Use relative path for production
 
   applications: PermissionApplication[] = [];
   filteredApplications: PermissionApplication[] = [];

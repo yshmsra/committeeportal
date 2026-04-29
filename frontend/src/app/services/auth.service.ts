@@ -33,7 +33,7 @@ export interface ResetPasswordRequest {
   providedIn: 'root'
 })
 export class AuthService {
-  private apiUrl = 'http://localhost:8080';
+  private apiUrl = ''; // Use relative path for production
 
   constructor(private http: HttpClient) { }
 

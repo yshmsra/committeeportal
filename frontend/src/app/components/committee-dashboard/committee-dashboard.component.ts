@@ -52,7 +52,7 @@ interface PermissionDocument {
   styleUrls: ['./committee-dashboard.component.css']
 })
 export class CommitteeDashboardComponent implements OnInit, OnDestroy {
-  private readonly BASE = 'http://localhost:8080';
+  private readonly BASE = ''; // Use relative path for production
   private pollInterval: any;
   private readonly POLL_MS = 30000;
 
