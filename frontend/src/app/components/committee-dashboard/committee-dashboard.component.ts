@@ -19,6 +19,13 @@ interface Event {
   venue?: Venue;
 }
 
+interface Approval {
+  approvalId: number;
+  approvalStatus: string;
+  approvalDate: string;
+  remarks?: string;
+}
+
 interface PermissionApplication {
   applicationId: number;
   event: Event;
@@ -26,6 +33,7 @@ interface PermissionApplication {
   permissionDoc: string;
   status: string;
   remarks?: string;
+  approvals?: Approval[];
   attachedDocuments?: PermissionDocument[];
 }
 
@@ -95,6 +103,7 @@ export class CommitteeDashboardComponent implements OnInit, OnDestroy {
   showSubmitModal: boolean = false;
   selectedEventToSubmit: Event | null = null;
   selectedApproverId: number | null = null;
+  isSubmittingPermission: boolean = false;
 
   // Document Upload
   selectedFiles: File[] = [];
@@ -177,6 +186,21 @@ export class CommitteeDashboardComponent implements OnInit, OnDestroy {
         next: (apps) => {
           const myEventIds = new Set(this.events.map(e => e.eventId));
           this.applications = (apps || []).filter(a => myEventIds.has(a.event?.eventId));
+          
+          // Fetch approvals for each application to get approver feedback
+          this.applications.forEach(app => {
+            this.http.get<Approval[]>(`${this.BASE}/api/approvals/application/${app.applicationId}`)
+              .subscribe({
+                next: (approvals) => {
+                  app.approvals = approvals || [];
+                },
+                error: (err) => {
+                  console.error('Failed to load approvals for application', app.applicationId, err);
+                  app.approvals = [];
+                }
+              });
+          });
+          
           this.errorMessage = ''; // Clear error on success
           this.calculateStats();
           this.isLoading = false;
@@ -434,6 +458,7 @@ export class CommitteeDashboardComponent implements OnInit, OnDestroy {
     this.selectedApproverId = null;
     this.selectedFiles = [];
     this.errorMessage = '';
+    this.isSubmittingPermission = false;
   }
 
   confirmSubmitPermission(): void {
@@ -450,6 +475,12 @@ export class CommitteeDashboardComponent implements OnInit, OnDestroy {
       return;
     }
 
+    // Prevent multiple submissions
+    if (this.isSubmittingPermission) {
+      return;
+    }
+
+    this.isSubmittingPermission = true;
     const event = this.selectedEventToSubmit;
     const approverId = this.selectedApproverId;
 
@@ -460,8 +491,6 @@ export class CommitteeDashboardComponent implements OnInit, OnDestroy {
     });
     formData.append('eventId', event.eventId.toString());
     formData.append('approverId', approverId.toString());
-
-    const isSubmitting = true;
     
     this.http.post<any>(
       `${this.BASE}/permissions/submit-with-documents`, formData
@@ -470,10 +499,12 @@ export class CommitteeDashboardComponent implements OnInit, OnDestroy {
         this.successMessage = `Permission application with ${this.selectedFiles.length} document(s) submitted to approver for "${event.eventName}".`;
         this.loadData();
         this.closeSubmitModal();
+        this.isSubmittingPermission = false;
         setTimeout(() => this.successMessage = '', 4000);
       },
       error: (err) => {
         this.errorMessage = err?.error?.message || 'Failed to submit permission application with documents.';
+        this.isSubmittingPermission = false;
         console.error(err);
         setTimeout(() => this.errorMessage = '', 4000);
       }

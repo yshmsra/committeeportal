@@ -534,11 +534,11 @@
         </ng-container>
         
         <!-- Approver Remarks -->
-        <div *ngIf="selectedApp.remarks" class="approver-remarks">
+        <div *ngIf="selectedApp.approvals && selectedApp.approvals.length > 0 && selectedApp.approvals[0].remarks" class="approver-remarks">
           <p class="remarks-label">Approver Feedback:</p>
-          <p class="remarks-text">"{{ selectedApp.remarks }}"</p>
+          <p class="remarks-text">"{{ selectedApp.approvals[0].remarks }}"</p>
         </div>
-        <div *ngIf="!selectedApp.remarks && (selectedApp.status || '').toUpperCase() === 'REJECTED'" class="approver-remarks">
+        <div *ngIf="(!selectedApp.approvals || selectedApp.approvals.length === 0 || !selectedApp.approvals[0].remarks) && (selectedApp.status || '').toUpperCase() === 'REJECTED'" class="approver-remarks">
           <p class="remarks-label">Approver Feedback:</p>
           <p class="remarks-text no-remarks">No specific feedback provided by the approver.</p>
         </div>
@@ -606,9 +606,14 @@
 
       <!-- Form Actions -->
       <div class="form-actions">
-        <button class="btn-cancel" (click)="closeSubmitModal()">Cancel</button>
-        <button class="btn-submit" (click)="confirmSubmitPermission()" [disabled]="!selectedApproverId || selectedFiles.length === 0">
-          Submit with {{ selectedFiles.length }} Document{{ selectedFiles.length !== 1 ? 's' : '' }}
+        <button class="btn-cancel" (click)="closeSubmitModal()" [disabled]="isSubmittingPermission">Cancel</button>
+        <button class="btn-submit" (click)="confirmSubmitPermission()" [disabled]="!selectedApproverId || selectedFiles.length === 0 || isSubmittingPermission">
+          <span *ngIf="!isSubmittingPermission">
+            Submit with {{ selectedFiles.length }} Document{{ selectedFiles.length !== 1 ? 's' : '' }}
+          </span>
+          <span *ngIf="isSubmittingPermission">
+            <span class="spinner-small"></span> Submitting...
+          </span>
         </button>
       </div>
     </div>

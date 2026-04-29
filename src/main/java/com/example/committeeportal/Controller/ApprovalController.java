@@ -27,6 +27,7 @@ import com.example.committeeportal.Repository.ApprovalRepository;
 import com.example.committeeportal.Repository.ApproverRepository;
 import com.example.committeeportal.Repository.EventRepository;
 import com.example.committeeportal.Repository.PermissionApplicationRepository;
+import com.example.committeeportal.ResponseBean.ErrorResponse;
 
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
