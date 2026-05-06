@@ -7,6 +7,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.validation.BindingResult;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PatchMapping;
@@ -28,6 +29,7 @@ import com.example.committeeportal.Service.AuthService;
 
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
+import jakarta.validation.Valid;
 
 @Tag(name = "Approvers", description = "Operations related to approvers")
 @RestController
@@ -65,18 +67,39 @@ public class ApproverController {
     // ✅ POST register new approver
     @Operation(summary = "Register a new approver")
     @PostMapping("/register")
-    public ResponseEntity<Approver> registerApprover(@RequestBody Approver approver) {
+    public ResponseEntity<?> registerApprover(@Valid @RequestBody Approver approver, BindingResult bindingResult) {
         logger.info("Registering new approver: {}", approver.getName());
+        
+        // Check for validation errors
+        if (bindingResult.hasErrors()) {
+            StringBuilder errorMessage = new StringBuilder();
+            bindingResult.getAllErrors().forEach(error -> {
+                errorMessage.append(error.getDefaultMessage()).append("; ");
+            });
+            logger.warn("Validation errors: {}", errorMessage);
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST)
+                .body(new ErrorResponse("Validation failed", errorMessage.toString()));
+        }
+        
         try {
+            // Check if email already exists
+            if (approverRepository.existsByEmailIgnoreCase(approver.getEmail())) {
+                logger.warn("Email {} already exists", approver.getEmail());
+                return ResponseEntity.status(HttpStatus.CONFLICT)
+                    .body(new ErrorResponse("Conflict", "Email already registered"));
+            }
+            
             Approver saved = authService.registerApprover(approver);
             logger.debug("Approver registered successfully with ID: {}", saved.getApproverId());
             return new ResponseEntity<>(saved, HttpStatus.CREATED);
         } catch (IllegalArgumentException e) {
             logger.warn("Error registering approver: {}", e.getMessage());
-            return ResponseEntity.badRequest().build();
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST)
+                .body(new ErrorResponse("Invalid Data", e.getMessage()));
         } catch (Exception e) {
             logger.error("Error registering approver", e);
-            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build();
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                .body(new ErrorResponse("Server Error", "An error occurred during registration"));
         }
     }
 

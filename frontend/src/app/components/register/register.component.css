@@ -15,7 +15,7 @@
   border-radius: 8px;
   box-shadow: 0 10px 25px rgba(0, 0, 0, 0.2);
   width: 100%;
-  max-width: 400px;
+  max-width: 450px;
 }
 
 .register-card h2 {
@@ -23,6 +23,10 @@
   color: #333;
   margin-bottom: 30px;
   font-size: 28px;
+}
+
+.required {
+  color: #d32f2f;
 }
 
 .form-group {
@@ -34,6 +38,16 @@
   margin-bottom: 8px;
   color: #555;
   font-weight: 500;
+}
+
+.form-control {
+  width: 100%;
+  padding: 12px;
+  border: 1px solid #ddd;
+  border-radius: 4px;
+  font-size: 14px;
+  box-sizing: border-box;
+  transition: border-color 0.3s, box-shadow 0.3s;
 }
 
 .form-group input,
@@ -54,13 +68,72 @@
   box-shadow: 0 0 5px rgba(102, 126, 234, 0.3);
 }
 
+/* Validation styles */
+.form-control.is-invalid,
+.form-group input.is-invalid,
+.form-group select.is-invalid {
+  border-color: #d32f2f !important;
+  background-color: #fff5f5;
+}
+
+.form-control.is-invalid:focus,
+.form-group input.is-invalid:focus,
+.form-group select.is-invalid:focus {
+  box-shadow: 0 0 5px rgba(211, 47, 47, 0.3);
+}
+
+/* Valid field */
+.form-control.ng-valid.ng-touched {
+  border-color: #4caf50;
+}
+
+.form-control.ng-valid.ng-touched:focus {
+  box-shadow: 0 0 5px rgba(76, 175, 80, 0.3);
+}
+
+/* Error text */
+.error-text {
+  color: #d32f2f;
+  font-size: 12px;
+  margin-top: 6px;
+  padding: 6px 8px;
+  background-color: #ffebee;
+  border-left: 3px solid #d32f2f;
+  border-radius: 2px;
+  display: block;
+}
+
+.error-text span {
+  display: block;
+}
+
+/* Hint text */
+.hint-text {
+  color: #999;
+  font-size: 12px;
+  margin-top: 6px;
+  font-style: italic;
+}
+
+/* Messages */
 .error-message {
   color: #d32f2f;
   background-color: #ffebee;
-  padding: 12px;
+  padding: 12px 14px;
   border-radius: 4px;
   margin-bottom: 20px;
   font-size: 14px;
+  border-left: 4px solid #d32f2f;
+}
+
+.success-message {
+  color: #2e7d32;
+  background-color: #e8f5e9;
+  padding: 12px 14px;
+  border-radius: 4px;
+  margin-bottom: 20px;
+  font-size: 14px;
+  border-left: 4px solid #4caf50;
 }
 
 .btn-submit {
@@ -83,6 +156,7 @@
 .btn-submit:disabled {
   background-color: #ccc;
   cursor: not-allowed;
+  opacity: 0.6;
 }
 
 .login-link {
@@ -101,3 +175,4 @@
 .login-link a:hover {
   text-decoration: underline;
 }
+

@@ -11,6 +11,9 @@ import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
 import jakarta.persistence.OneToMany;
 import jakarta.persistence.Table;
+import jakarta.validation.constraints.Email;
+import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.Size;
 
 @Entity
 @Table(name = "approver")
@@ -21,17 +24,26 @@ public class Approver {
     @Column(name = "approver_id")
     private Long approverId;
 
+    @NotBlank(message = "Name is required")
+    @Size(min = 3, max = 100, message = "Name must be between 3 and 100 characters")
     @Column(name = "name")
     private String name;
     
+    @NotBlank(message = "Role is required")
+    @Size(min = 3, max = 50, message = "Role must be valid")
     @Column(name = "role")
     private String role;
     
-    @Column(name = "email")
+    @NotBlank(message = "Email is required")
+    @Email(message = "Email should be valid", regexp = "^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\\.(com|in|org|net|edu|co\\.uk|io)$")
+    @Column(name = "email", unique = true)
     private String email;
+    
     @Column(name = "digital_signature")
     private String digitalSignature;
     
+    @NotBlank(message = "Password is required")
+    @Size(min = 6, message = "Password must be at least 6 characters")
     @Column(name = "password")
     private String password;
     
@@ -75,5 +87,13 @@ public class Approver {
     }
     public void setPassword(String password) {
         this.password = password;
+    }
+    
+    public List<Approval> getApprovals() {
+        return approvals;
+    }
+    
+    public void setApprovals(List<Approval> approvals) {
+        this.approvals = approvals;
     }
 }

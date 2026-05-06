@@ -8,6 +8,7 @@
     import org.springframework.beans.factory.annotation.Autowired;
     import org.springframework.http.HttpStatus;
     import org.springframework.http.ResponseEntity;
+    import org.springframework.validation.BindingResult;
     import org.springframework.web.bind.annotation.DeleteMapping;
     import org.springframework.web.bind.annotation.GetMapping;
     import org.springframework.web.bind.annotation.PatchMapping;
@@ -29,7 +30,8 @@
     import com.example.committeeportal.Service.AuthService;
 
     import io.swagger.v3.oas.annotations.Operation;
-import io.swagger.v3.oas.annotations.tags.Tag;
+    import io.swagger.v3.oas.annotations.tags.Tag;
+    import jakarta.validation.Valid;
 
     @Tag(name = "committe", description = "Operations related to committe")
     @RestController
@@ -86,20 +88,34 @@ import io.swagger.v3.oas.annotations.tags.Tag;
         // Register a new committee
         @Operation(summary = "Register a new committee")
         @PostMapping("/register")
-        public ResponseEntity<Committee> registerCommittee(@RequestBody Committee committee) {
+        public ResponseEntity<?> registerCommittee(@Valid @RequestBody Committee committee, BindingResult bindingResult) {
             logger.info("Registering new committee: {}", committee.getCommitteeName());
+            
+            // Check for validation errors
+            if (bindingResult.hasErrors()) {
+                StringBuilder errorMessage = new StringBuilder();
+                bindingResult.getAllErrors().forEach(error -> {
+                    errorMessage.append(error.getDefaultMessage()).append("; ");
+                });
+                logger.warn("Validation errors: {}", errorMessage);
+                return ResponseEntity.status(HttpStatus.BAD_REQUEST)
+                    .body(new ErrorResponse("Validation failed", errorMessage.toString()));
+            }
+            
             try {
                 // Check if committee name already exists
                 if (committeeRepository.existsByCommitteeNameIgnoreCase(committee.getCommitteeName())) {
                     logger.warn("Committee name {} already exists", committee.getCommitteeName());
-                    return ResponseEntity.status(HttpStatus.CONFLICT).build();
+                    return ResponseEntity.status(HttpStatus.CONFLICT)
+                        .body(new ErrorResponse("Conflict", "Committee name already exists"));
                 }
                 
                 // Check if email already exists
                 if (committee.getContactEmail() != null && 
                     committeeRepository.existsByContactEmailIgnoreCase(committee.getContactEmail())) {
                     logger.warn("Email {} already exists", committee.getContactEmail());
-                    return ResponseEntity.status(HttpStatus.CONFLICT).build();
+                    return ResponseEntity.status(HttpStatus.CONFLICT)
+                        .body(new ErrorResponse("Conflict", "Email already registered"));
                 }
                 
                 // Register with encrypted password
@@ -108,7 +124,8 @@ import io.swagger.v3.oas.annotations.tags.Tag;
                 return ResponseEntity.status(HttpStatus.CREATED).body(savedCommittee);
             } catch (IllegalArgumentException e) {
                 logger.warn("Invalid registration data: {}", e.getMessage());
-                return ResponseEntity.status(HttpStatus.BAD_REQUEST).build();
+                return ResponseEntity.status(HttpStatus.BAD_REQUEST)
+                    .body(new ErrorResponse("Invalid Data", e.getMessage()));
             } catch (Exception e) {
                 logger.error("Error registering committee {}", committee.getCommitteeName(), e);
                 return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build();
