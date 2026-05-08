@@ -11,6 +11,9 @@ import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
 import jakarta.persistence.OneToMany;
 import jakarta.persistence.Table;
+import jakarta.validation.constraints.Email;
+import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.Size;
 
 @Entity
 @Table(name = "committee")
@@ -21,15 +24,23 @@ public class Committee {
     @Column(name = "id")
     private Long id;
     
+    @NotBlank(message = "Committee name is required")
+    @Size(min = 3, max = 100, message = "Committee name must be between 3 and 100 characters")
     @Column(name = "committee_name", nullable = false)
     private String committeeName;
     
+    @NotBlank(message = "Head of committee is required")
+    @Size(min = 3, max = 100, message = "Head name must be between 3 and 100 characters")
     @Column(name = "head_of_committee")
     private String headOfCommittee;
     
-    @Column(name = "contact_email")
+    @NotBlank(message = "Contact email is required")
+    @Email(message = "Contact email should be valid", regexp = "^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\\.(com|in|org|net|edu|co\\.uk|io)$")
+    @Column(name = "contact_email", unique = true)
     private String contactEmail;
     
+    @NotBlank(message = "Password is required")
+    @Size(min = 6, message = "Password must be at least 6 characters")
     @Column(name = "password")
     private String password;
     
