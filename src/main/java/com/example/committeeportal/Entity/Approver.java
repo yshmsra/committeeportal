@@ -25,12 +25,12 @@ public class Approver {
     private Long approverId;
 
     @NotBlank(message = "Name is required")
-    @Size(min = 2, max = 100, message = "Name must be between 2 and 100 characters")
+    @Size(min = 3, max = 100, message = "Name must be between 3 and 100 characters")
     @Column(name = "name")
     private String name;
     
     @NotBlank(message = "Role is required")
-    @Size(min = 2, max = 50, message = "Role must be valid")
+    @Size(min = 3, max = 50, message = "Role must be valid")
     @Column(name = "role")
     private String role;
     
