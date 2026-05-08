@@ -145,10 +145,9 @@ public ResponseEntity<?> updateApprover(
                 existing.setName(approverDetails.getName());
                 existing.setEmail(approverDetails.getEmail());
                 existing.setRole(approverDetails.getRole());
-                existing.setDigitalSignature(approverDetails.getDigitalSignature());
                 
-                // Use AuthService to encrypt password if provided
-                if (approverDetails.getPassword() != null) {
+                // Use AuthService to encrypt password ONLY if a new one is provided
+                if (approverDetails.getPassword() != null && !approverDetails.getPassword().trim().isEmpty()) {
                     authService.updateApproverPassword(id, approverDetails.getPassword());
                 }
                 
@@ -185,10 +184,7 @@ public ResponseEntity<?> patchApprover(
                 if (partial.getRole() != null) {
                     existing.setRole(partial.getRole());
                 }
-                if (partial.getDigitalSignature() != null) {
-                    existing.setDigitalSignature(partial.getDigitalSignature());
-                }
-                if (partial.getPassword() != null) {
+                if (partial.getPassword() != null && !partial.getPassword().trim().isEmpty()) {
                     // Use AuthService to encrypt password
                     authService.updateApproverPassword(id, partial.getPassword());
                 }
