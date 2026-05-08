@@ -218,7 +218,7 @@
                   *ngIf="!hasApplication(event)"
                   class="btn-action btn-apply"
                   type="button"
-                  (click)="submitPermission(event, $event)">
+                  (click)="submitPermission(event)">
                   Apply for Permission
                 </button>
                 <button
@@ -407,78 +407,6 @@
       </div>
     </div>
 
-    <!-- ─── Submit Permission Modal ─── -->
-    <div class="drawer-overlay" *ngIf="showSubmitModal" (click)="closeSubmitModal()">
-      <div class="drawer submit-drawer" (click)="$event.stopPropagation()">
-        <div class="drawer-header">
-          <div>
-            <h3>Submit Permission Application</h3>
-            <p class="drawer-subtitle">Select approver and attach documents for "{{ selectedEventToSubmit?.eventName }}"</p>
-          </div>
-          <button class="modal-close" (click)="closeSubmitModal()" aria-label="Close">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="20" height="20">
-              <line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>
-            </svg>
-          </button>
-        </div>
-        <div class="drawer-body">
-          <!-- Approver Selection -->
-          <div class="modal-form-group">
-            <label for="approverSelect" class="modal-label">Select Approver</label>
-            <select id="approverSelect" [(ngModel)]="selectedApproverId" class="modal-select">
-              <option [ngValue]="null" disabled selected>-- Choose Approver --</option>
-              <option *ngFor="let approver of approvers" [ngValue]="approver.approverId">
-                {{ approver.name }} ({{ approver.role }})
-              </option>
-            </select>
-            <p *ngIf="approvers.length === 0" class="field-error" style="margin-top: 10px;">No approvers available. Registration required.</p>
-          </div>
-
-          <!-- File Upload Section -->
-          <div class="modal-form-group">
-            <label class="modal-label">Attach Documents <span class="required">*</span></label>
-            <div class="drop-zone" (click)="submitFileInput.click()">
-              <input type="file" multiple accept=".pdf" (change)="onFilesSelected($event)" #submitFileInput style="display: none;" />
-              <svg class="drop-zone-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/>
-              </svg>
-              <p class="drop-zone-text">Click to upload or drag and drop</p>
-              <p class="drop-zone-subtext">PDF files only (max 5 files)</p>
-            </div>
-          </div>
-
-          <!-- Selected Files List -->
-          <div *ngIf="selectedFiles.length > 0" class="modal-form-group">
-            <label class="modal-label">Selected Files ({{ selectedFiles.length }})</label>
-            <div class="selected-files-container">
-              <div *ngFor="let file of selectedFiles" class="file-row">
-                <div class="file-info">
-                  <p>{{ file.name }}</p>
-                  <span>{{ formatFileSize(file.size) }}</span>
-                </div>
-              </div>
-            </div>
-          </div>
-
-          <!-- Error Message -->
-          <div *ngIf="errorMessage" class="error-banner">{{ errorMessage }}</div>
-
-          <!-- Form Actions -->
-          <div class="form-actions">
-            <button class="btn-cancel" (click)="closeSubmitModal()" [disabled]="isSubmittingPermission">Cancel</button>
-            <button class="btn-submit" (click)="confirmSubmitPermission()" [disabled]="!selectedApproverId || selectedFiles.length === 0 || isSubmittingPermission">
-              <span *ngIf="!isSubmittingPermission">
-                Submit with {{ selectedFiles.length }} Document{{ selectedFiles.length !== 1 ? 's' : '' }}
-              </span>
-              <span *ngIf="isSubmittingPermission">
-                <span class="spinner-small"></span> Submitting...
-              </span>
-            </button>
-          </div>
-        </div>
-      </div>
-    </div>
-
   </main>
 </div>
 
@@ -583,25 +511,6 @@
         <div *ngIf="(!selectedApp.approvals || selectedApp.approvals.length === 0 || !selectedApp.approvals[0].remarks) && (selectedApp.status || '').toUpperCase() === 'REJECTED'" class="approver-remarks">
           <p class="remarks-label">Approver Feedback:</p>
           <p class="remarks-text no-remarks">No specific feedback provided by the approver.</p>
-        </div>
-
-        <!-- NEW Actions for Rejected Applications -->
-        <div *ngIf="(selectedApp.status || '').toUpperCase() === 'REJECTED'" class="rejected-actions">
-          <p class="actions-hint">Since this application was rejected, you can choose to:</p>
-          <div class="action-buttons">
-            <button class="btn-edit-rejected" (click)="handleRejectedApplicationAction('edit', selectedApp, $event)">
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16">
-                <path d="M11 4H4a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 013 3L12 15l-4 1 1-4 9.5-9.5z"/>
-              </svg>
-              Edit & Re-apply
-            </button>
-            <button class="btn-delete-rejected" (click)="handleRejectedApplicationAction('delete', selectedApp, $event)">
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16">
-                <polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 01-2 2H7a2 2 0 01-2-2V6m3 0V4a2 2 0 012-2h4a2 2 0 012 2v2"/>
-              </svg>
-              Cancel Event
-            </button>
-          </div>
         </div>
       </div>
 
@@ -788,4 +697,74 @@
   </div>
 </div>
 
+<!-- ─── Submit Permission Modal ─── -->
+<div class="drawer-overlay" *ngIf="showSubmitModal" (click)="closeSubmitModal()">
+  <div class="drawer submit-drawer" (click)="$event.stopPropagation()">
+    <div class="drawer-header">
+      <div>
+        <h3>Submit Permission Application</h3>
+        <p class="drawer-subtitle">Select approver and attach documents for "{{ selectedEventToSubmit?.eventName }}"</p>
+      </div>
+      <button class="modal-close" (click)="closeSubmitModal()" aria-label="Close">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="20" height="20">
+          <line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>
+        </svg>
+      </button>
+    </div>
+    <div class="drawer-body">
+      <!-- Approver Selection -->
+      <div class="modal-form-group">
+        <label for="approverSelect" class="modal-label">Select Approver</label>
+        <select id="approverSelect" [(ngModel)]="selectedApproverId" class="modal-select">
+          <option [ngValue]="null" disabled selected>-- Choose Approver --</option>
+          <option *ngFor="let approver of approvers" [ngValue]="approver.approverId">
+            {{ approver.name }} ({{ approver.role }})
+          </option>
+        </select>
+        <p *ngIf="approvers.length === 0" class="field-error" style="margin-top: 10px;">No approvers available. Registration required.</p>
+      </div>
 
+      <!-- File Upload Section -->
+      <div class="modal-form-group">
+        <label class="modal-label">Attach Documents <span class="required">*</span></label>
+        <div class="drop-zone" (click)="submitFileInput.click()">
+          <input type="file" multiple accept=".pdf" (change)="onFilesSelected($event)" #submitFileInput style="display: none;" />
+          <svg class="drop-zone-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/>
+          </svg>
+          <p class="drop-zone-text">Click to upload or drag and drop</p>
+          <p class="drop-zone-subtext">PDF files only (max 5 files)</p>
+        </div>
+      </div>
+
+      <!-- Selected Files List -->
+      <div *ngIf="selectedFiles.length > 0" class="modal-form-group">
+        <label class="modal-label">Selected Files ({{ selectedFiles.length }})</label>
+        <div class="selected-files-container">
+          <div *ngFor="let file of selectedFiles" class="file-row">
+            <div class="file-info">
+              <p>{{ file.name }}</p>
+              <span>{{ formatFileSize(file.size) }}</span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Error Message -->
+      <div *ngIf="errorMessage" class="error-banner">{{ errorMessage }}</div>
+
+      <!-- Form Actions -->
+      <div class="form-actions">
+        <button class="btn-cancel" (click)="closeSubmitModal()" [disabled]="isSubmittingPermission">Cancel</button>
+        <button class="btn-submit" (click)="confirmSubmitPermission()" [disabled]="!selectedApproverId || selectedFiles.length === 0 || isSubmittingPermission">
+          <span *ngIf="!isSubmittingPermission">
+            Submit with {{ selectedFiles.length }} Document{{ selectedFiles.length !== 1 ? 's' : '' }}
+          </span>
+          <span *ngIf="isSubmittingPermission">
+            <span class="spinner-small"></span> Submitting...
+          </span>
+        </button>
+      </div>
+    </div>
+  </div>
+</div>

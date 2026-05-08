@@ -15,6 +15,9 @@ Chart.register(...registerables);
   styleUrls: ['./admin-dashboard.component.css']
 })
 export class AdminDashboardComponent implements OnInit, AfterViewInit {
+  // Tab Navigation
+  activeTab: string = 'overview';
+
   // Forms
   committeeForm!: FormGroup;
   approverForm!: FormGroup;
@@ -54,6 +57,23 @@ export class AdminDashboardComponent implements OnInit, AfterViewInit {
   // Charts
   approvalChart: any;
   venueChart: any;
+
+  // Getters for template
+  get committeeList(): any[] {
+    return this.committeeDataSource.data;
+  }
+
+  get approverList(): any[] {
+    return this.approverDataSource.data;
+  }
+
+  get venueList(): any[] {
+    return this.venueDataSource.data;
+  }
+
+  get eventList(): any[] {
+    return this.eventDataSource.data;
+  }
 
   constructor(
     private adminService: AdminService, 
@@ -131,6 +151,13 @@ export class AdminDashboardComponent implements OnInit, AfterViewInit {
 
   ngAfterViewInit(): void {
     this.loadChartData();
+  }
+
+  setTab(tabName: string): void {
+    this.activeTab = tabName;
+    this.showCommitteeForm = false;
+    this.showApproverForm = false;
+    this.showVenueForm = false;
   }
 
   loadStats(): void {
