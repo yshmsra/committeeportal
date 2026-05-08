@@ -230,8 +230,17 @@ export class AdminDashboardComponent implements OnInit, AfterViewInit {
   }
 
   loadEvents(): void {
-    this.adminService.getAllEvents().subscribe(data => {
-      this.eventDataSource.data = data.filter(e => e.status === 'APPROVED');
+    this.adminService.getAllEvents().subscribe({
+      next: (data) => {
+        // Case-insensitive check for 'APPROVED' status
+        this.eventDataSource.data = data.filter(e => 
+          e.status && e.status.toUpperCase() === 'APPROVED'
+        );
+      },
+      error: (err) => {
+        console.error('Failed to load events:', err);
+        this.snackBar.open('Failed to load events', 'Close', { duration: 3000 });
+      }
     });
   }
 

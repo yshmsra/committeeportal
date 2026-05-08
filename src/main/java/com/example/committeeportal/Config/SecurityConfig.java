@@ -48,6 +48,7 @@ public class SecurityConfig {
                         .requestMatchers("/api/permissions/submit-with-documents").permitAll()
                         .requestMatchers("/api/committees/login").permitAll()
                         .requestMatchers("/api/approvers/login").permitAll()
+                        .requestMatchers("/api/committees/login").permitAll()
                         .requestMatchers("/api/committees/register").hasRole("ADMIN")
                         .requestMatchers("/api/approvers/register").hasRole("ADMIN")
                         .requestMatchers("/api/committees/reset-password").permitAll()
@@ -79,7 +80,7 @@ public class SecurityConfig {
     @Bean
     public CorsConfigurationSource corsConfigurationSource() {
         CorsConfiguration configuration = new CorsConfiguration();
-        configuration.setAllowedOrigins(Arrays.asList("http://localhost:4200", "http://localhost:3000"));
+        configuration.setAllowedOrigins(Arrays.asList("http://localhost:4200", "http://127.0.0.1:4200", "http://localhost:3000"));
         configuration.setAllowedMethods(Arrays.asList("GET", "POST", "PUT", "DELETE", "PATCH", "OPTIONS"));
         configuration.setAllowedHeaders(Arrays.asList("*"));
         configuration.setAllowCredentials(true);

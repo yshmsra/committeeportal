@@ -9,7 +9,7 @@ export class AdminService {
   private apiUrl = 'http://localhost:8080/api/admin/dashboard';
   private committeeUrl = 'http://localhost:8080/api/committees';
   private venueUrl = 'http://localhost:8080/api/venues';
-  private eventUrl = 'http://localhost:8080/events';
+  private eventUrl = 'http://localhost:8080/api/events';
   private approverUrl = 'http://localhost:8080/api/approvers';
 
   constructor(private http: HttpClient) { }
