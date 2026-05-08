@@ -3,72 +3,20 @@
     <h2>Register</h2>
 
     <form [formGroup]="registerForm" (ngSubmit)="onSubmit()">
-      <!-- Role Selection -->
+      <!-- Registration for Admin only -->
       <div class="form-group">
-        <label for="role">Role: <span class="required">*</span></label>
-        <select
-          id="role"
-          formControlName="role"
-          (change)="onRoleChange()"
+        <label for="name">Name: <span class="required">*</span></label>
+        <input
+          type="text"
+          id="name"
+          formControlName="name"
+          placeholder="Enter your name (min 3 characters)"
           class="form-control"
-        >
-          <option value="COMMITTEE">Committee</option>
-          <option value="APPROVER">Approver</option>
-          <option value="ADMIN">Admin</option>
-        </select>
-      </div>
-
-      <!-- Committee-specific fields -->
-      <div *ngIf="role === 'COMMITTEE'">
-        <div class="form-group">
-          <label for="committeeName">Committee Name: <span class="required">*</span></label>
-          <input
-            type="text"
-            id="committeeName"
-            formControlName="committeeName"
-            placeholder="Enter committee name (min 3 characters)"
-            class="form-control"
-            [class.is-invalid]="committeeName?.invalid && committeeName?.touched"
-          />
-          <div *ngIf="committeeName?.touched && committeeName?.invalid" class="error-text">
-            <span *ngIf="committeeName?.hasError('required')">Committee name is required</span>
-            <span *ngIf="committeeName?.hasError('minlength')">Committee name must be at least 3 characters</span>
-          </div>
-        </div>
-
-        <div class="form-group">
-          <label for="facultyInChargeName">Faculty In Charge Name: <span class="required">*</span></label>
-          <input
-            type="text"
-            id="facultyInChargeName"
-            formControlName="facultyInChargeName"
-            placeholder="Enter faculty in charge name (min 3 characters)"
-            class="form-control"
-            [class.is-invalid]="facultyInChargeName?.invalid && facultyInChargeName?.touched"
-          />
-          <div *ngIf="facultyInChargeName?.touched && facultyInChargeName?.invalid" class="error-text">
-            <span *ngIf="facultyInChargeName?.hasError('required')">Faculty name is required</span>
-            <span *ngIf="facultyInChargeName?.hasError('minlength')">Faculty name must be at least 3 characters</span>
-          </div>
-        </div>
-      </div>
-
-      <!-- Approver/Admin-specific fields -->
-      <div *ngIf="role === 'APPROVER' || role === 'ADMIN'">
-        <div class="form-group">
-          <label for="name">Name: <span class="required">*</span></label>
-          <input
-            type="text"
-            id="name"
-            formControlName="name"
-            placeholder="Enter your name (min 3 characters)"
-            class="form-control"
-            [class.is-invalid]="name?.invalid && name?.touched"
-          />
-          <div *ngIf="name?.touched && name?.invalid" class="error-text">
-            <span *ngIf="name?.hasError('required')">Name is required</span>
-            <span *ngIf="name?.hasError('minlength')">Name must be at least 3 characters</span>
-          </div>
+          [class.is-invalid]="name?.invalid && name?.touched"
+        />
+        <div *ngIf="name?.touched && name?.invalid" class="error-text">
+          <span *ngIf="name?.hasError('required')">Name is required</span>
+          <span *ngIf="name?.hasError('minlength')">Name must be at least 3 characters</span>
         </div>
       </div>
 
@@ -141,7 +89,7 @@
         [disabled]="registerForm.invalid || isLoading" 
         class="btn-submit"
       >
-        {{ isLoading ? 'Registering...' : 'Register' }}
+        {{ isLoading ? 'Registering...' : 'Register as Admin' }}
       </button>
     </form>
 

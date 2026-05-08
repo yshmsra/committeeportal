@@ -30,7 +30,7 @@ export class RegisterComponent implements OnInit {
 
   initializeForm() {
     this.registerForm = this.formBuilder.group({
-      role: ['COMMITTEE', Validators.required],
+      role: ['ADMIN', Validators.required],
       email: ['', [
         Validators.required,
         Validators.email,
@@ -41,63 +41,11 @@ export class RegisterComponent implements OnInit {
         Validators.minLength(6)
       ]],
       confirmPassword: ['', Validators.required],
-      // Committee-specific fields
-      committeeName: ['', [
-        Validators.required,
-        Validators.minLength(3)
-      ]],
-      facultyInChargeName: ['', [
-        Validators.required,
-        Validators.minLength(3)
-      ]],
-      // Approver-specific fields
       name: ['', [
+        Validators.required,
         Validators.minLength(3)
       ]]
     }, { validators: this.passwordMatchValidator });
-    
-    // Apply dynamic validators based on role
-    this.updateValidators();
-    
-    // Update validators whenever role changes
-    this.registerForm.get('role')?.valueChanges.subscribe(() => {
-      this.updateValidators();
-    });
-  }
-
-  private updateValidators() {
-    const roleControl = this.registerForm.get('role');
-    const committeeNameControl = this.registerForm.get('committeeName');
-    const facultyInChargeControl = this.registerForm.get('facultyInChargeName');
-    const nameControl = this.registerForm.get('name');
-
-    if (roleControl?.value === 'COMMITTEE') {
-      // Require committee-specific fields
-      committeeNameControl?.setValidators([
-        Validators.required,
-        Validators.minLength(3)
-      ]);
-      facultyInChargeControl?.setValidators([
-        Validators.required,
-        Validators.minLength(3)
-      ]);
-      // Clear validators for approver name
-      nameControl?.setValidators([Validators.minLength(3)]);
-    } else if (roleControl?.value === 'APPROVER' || roleControl?.value === 'ADMIN') {
-      // Clear validators for committee fields
-      committeeNameControl?.setValidators([]);
-      facultyInChargeControl?.setValidators([]);
-      // Require approver/admin name
-      nameControl?.setValidators([
-        Validators.required,
-        Validators.minLength(3)
-      ]);
-    }
-
-    committeeNameControl?.updateValueAndValidity({ emitEvent: false });
-    facultyInChargeControl?.updateValueAndValidity({ emitEvent: false });
-    nameControl?.updateValueAndValidity({ emitEvent: false });
-    this.registerForm.updateValueAndValidity();
   }
 
   // Custom validator to check if passwords match
@@ -112,7 +60,7 @@ export class RegisterComponent implements OnInit {
   }
 
   get role() {
-    return this.registerForm.get('role')?.value;
+    return 'ADMIN';
   }
 
   // Getters for form fields
@@ -126,14 +74,6 @@ export class RegisterComponent implements OnInit {
 
   get confirmPassword() {
     return this.registerForm.get('confirmPassword');
-  }
-
-  get committeeName() {
-    return this.registerForm.get('committeeName');
-  }
-
-  get facultyInChargeName() {
-    return this.registerForm.get('facultyInChargeName');
   }
 
   get name() {
@@ -181,40 +121,19 @@ export class RegisterComponent implements OnInit {
       return;
     }
 
-    // Additional validation for role-specific fields
-    if (this.role === 'COMMITTEE') {
-      if (!this.committeeName?.value || !this.facultyInChargeName?.value) {
-        this.errorMessage = 'Committee name and faculty in charge name are required';
-        return;
-      }
-    }
-
-    if (this.role === 'APPROVER' || this.role === 'ADMIN') {
-      if (!this.name?.value) {
-        this.errorMessage = `Name is required for ${this.role} role`;
-        return;
-      }
-    }
-
     this.isLoading = true;
 
     const registerData: RegisterRequest = {
       email: this.email?.value.trim(),
       password: this.password?.value,
-      role: this.role
+      role: 'ADMIN',
+      name: this.name?.value.trim()
     };
-
-    if (this.role === 'COMMITTEE') {
-      registerData.committeeName = this.committeeName?.value.trim();
-      registerData.facultyInChargeName = this.facultyInChargeName?.value.trim();
-    } else if (this.role === 'APPROVER' || this.role === 'ADMIN') {
-      registerData.name = this.name?.value.trim();
-    }
 
     this.authService.register(registerData).subscribe(
       (response) => {
         this.isLoading = false;
-        this.successMessage = 'Registration successful! Redirecting to login...';
+        this.successMessage = 'Admin registration successful! Redirecting to login...';
         setTimeout(() => {
           this.router.navigate(['/login']);
         }, 2000);
@@ -225,11 +144,6 @@ export class RegisterComponent implements OnInit {
         console.error('Registration error:', error);
       }
     );
-  }
-
-  onRoleChange() {
-    // Validators are now updated automatically via the valueChanges subscription
-    // This method is kept for backward compatibility but the actual logic is in updateValidators()
   }
 
   navigateToLogin() {
