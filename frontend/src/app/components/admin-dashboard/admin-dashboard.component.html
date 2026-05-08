@@ -1,0 +1,514 @@
+<div class="admin-container">
+  <mat-toolbar color="primary" class="admin-header">
+    <span>Admin Command Center</span>
+    <span class="spacer"></span>
+    <button mat-icon-button (click)="logout()">
+      <mat-icon>logout</mat-icon>
+    </button>
+  </mat-toolbar>
+
+  <mat-tab-group mat-stretch-tabs="false" mat-align-tabs="start" class="admin-tabs">
+    <!-- Statistics & Overview -->
+    <mat-tab label="Overview">
+      <div class="dashboard-content">
+        <div class="stats-grid">
+          <mat-card class="stat-card total-events">
+            <mat-card-header>
+              <mat-card-title>Total Events</mat-card-title>
+              <mat-icon mat-card-avatar>event</mat-icon>
+            </mat-card-header>
+            <mat-card-content>
+              <h1 class="stat-value">{{stats?.totalEvents || 0}}</h1>
+            </mat-card-content>
+          </mat-card>
+
+          <mat-card class="stat-card pending">
+            <mat-card-header>
+              <mat-card-title>Pending Approvals</mat-card-title>
+              <mat-icon mat-card-avatar>pending_actions</mat-icon>
+            </mat-card-header>
+            <mat-card-content>
+              <h1 class="stat-value">{{stats?.pendingApprovals || 0}}</h1>
+            </mat-card-content>
+          </mat-card>
+
+          <mat-card class="stat-card approved">
+            <mat-card-header>
+              <mat-card-title>Approved Events</mat-card-title>
+              <mat-icon mat-card-avatar>check_circle</mat-icon>
+            </mat-card-header>
+            <mat-card-content>
+              <h1 class="stat-value">{{stats?.approvedEvents || 0}}</h1>
+            </mat-card-content>
+          </mat-card>
+
+          <mat-card class="stat-card rejected">
+            <mat-card-header>
+              <mat-card-title>Rejected Events</mat-card-title>
+              <mat-icon mat-card-avatar>cancel</mat-icon>
+            </mat-card-header>
+            <mat-card-content>
+              <h1 class="stat-value">{{stats?.rejectedEvents || 0}}</h1>
+            </mat-card-content>
+          </mat-card>
+
+          <mat-card class="stat-card committees">
+            <mat-card-header>
+              <mat-card-title>Total Committees</mat-card-title>
+              <mat-icon mat-card-avatar>groups</mat-icon>
+            </mat-card-header>
+            <mat-card-content>
+              <h1 class="stat-value">{{stats?.totalCommittees || 0}}</h1>
+            </mat-card-content>
+          </mat-card>
+
+          <mat-card class="stat-card venues">
+            <mat-card-header>
+              <mat-card-title>Total Venues</mat-card-title>
+              <mat-icon mat-card-avatar>meeting_room</mat-icon>
+            </mat-card-header>
+            <mat-card-content>
+              <h1 class="stat-value">{{stats?.totalVenues || 0}}</h1>
+            </mat-card-content>
+          </mat-card>
+        </div>
+
+        <div class="charts-container">
+          <mat-card class="chart-card">
+            <mat-card-header>
+              <mat-card-title>Approval Analytics</mat-card-title>
+            </mat-card-header>
+            <mat-card-content>
+              <canvas id="approvalChart"></canvas>
+            </mat-card-content>
+          </mat-card>
+
+          <mat-card class="chart-card">
+            <mat-card-header>
+              <mat-card-title>Venue Usage</mat-card-title>
+            </mat-card-header>
+            <mat-card-content>
+              <canvas id="venueChart"></canvas>
+            </mat-card-content>
+          </mat-card>
+        </div>
+      </div>
+    </mat-tab>
+
+    <!-- Committee Management -->
+    <mat-tab label="Committees">
+      <div class="tab-content">
+        <div class="action-bar">
+          <mat-form-field appearance="outline" class="search-field">
+            <mat-label>Search Committees</mat-label>
+            <input matInput (keyup)="applyFilter($event)" placeholder="Ex. Tech Team" #input>
+            <mat-icon matSuffix>search</mat-icon>
+          </mat-form-field>
+          <button mat-raised-button color="primary" (click)="toggleCommitteeForm()">
+            <mat-icon>{{showCommitteeForm ? 'close' : 'add'}}</mat-icon> 
+            {{showCommitteeForm ? 'Cancel' : 'Create Committee'}}
+          </button>
+        </div>
+
+        <!-- Create Committee Form -->
+        <mat-card *ngIf="showCommitteeForm" class="registration-form-card">
+          <mat-card-header>
+            <mat-card-title>Register New Committee</mat-card-title>
+          </mat-card-header>
+          <mat-card-content>
+            <form [formGroup]="committeeForm" (ngSubmit)="onRegisterCommittee()" class="admin-form">
+              <div class="form-row">
+                <mat-form-field appearance="outline">
+                  <mat-label>Committee Name</mat-label>
+                  <input matInput formControlName="committeeName" placeholder="Ex. Tech Team">
+                  <mat-error *ngIf="committeeForm.get('committeeName')?.hasError('required')">Required</mat-error>
+                </mat-form-field>
+
+                <mat-form-field appearance="outline">
+                  <mat-label>Faculty In-Charge</mat-label>
+                  <input matInput formControlName="facultyInChargeName" placeholder="Name of Head">
+                  <mat-error *ngIf="committeeForm.get('facultyInChargeName')?.hasError('required')">Required</mat-error>
+                </mat-form-field>
+              </div>
+
+              <div class="form-row">
+                <mat-form-field appearance="outline">
+                  <mat-label>Contact Email</mat-label>
+                  <input matInput type="email" formControlName="email" placeholder="committee@college.edu">
+                  <mat-error *ngIf="committeeForm.get('email')?.hasError('email')">Invalid email</mat-error>
+                  <mat-error *ngIf="committeeForm.get('email')?.hasError('pattern')">Invalid domain (.com, .in, etc)</mat-error>
+                </mat-form-field>
+
+                <mat-form-field appearance="outline">
+                  <mat-label>Initial Password</mat-label>
+                  <input matInput type="password" formControlName="password" placeholder="At least 6 chars">
+                  <mat-error *ngIf="committeeForm.get('password')?.hasError('minlength')">Too short</mat-error>
+                </mat-form-field>
+              </div>
+
+              <div class="form-actions">
+                <button mat-raised-button color="primary" type="submit" [disabled]="committeeForm.invalid || isLoading">
+                  {{isLoading ? 'Registering...' : 'Register Committee'}}
+                </button>
+              </div>
+            </form>
+          </mat-card-content>
+        </mat-card>
+
+
+        <!-- Edit Committee Form -->
+        <mat-card *ngIf="isEditingCommittee" class="registration-form-card edit-committee-form-card">
+          <mat-card-header>
+            <mat-card-title>Edit Committee</mat-card-title>
+            <mat-card-subtitle>Update committee details. Leave password blank to keep it unchanged.</mat-card-subtitle>
+          </mat-card-header>
+          <mat-card-content>
+            <form [formGroup]="editCommitteeForm" (ngSubmit)="onEditCommitteeSubmit()" class="admin-form">
+              <div class="form-row">
+                <mat-form-field appearance="outline">
+                  <mat-label>Committee Name</mat-label>
+                  <input matInput formControlName="committeeName" placeholder="Ex. Tech Team">
+                  <mat-error *ngIf="editCommitteeForm.get('committeeName')?.hasError('required')">Required</mat-error>
+                  <mat-error *ngIf="editCommitteeForm.get('committeeName')?.hasError('minlength')">Min 3 characters</mat-error>
+                </mat-form-field>
+
+                <mat-form-field appearance="outline">
+                  <mat-label>Head of Committee</mat-label>
+                  <input matInput formControlName="headOfCommittee" placeholder="Name of Head">
+                  <mat-error *ngIf="editCommitteeForm.get('headOfCommittee')?.hasError('required')">Required</mat-error>
+                </mat-form-field>
+              </div>
+
+              <div class="form-row">
+                <mat-form-field appearance="outline">
+                  <mat-label>Contact Email</mat-label>
+                  <input matInput type="email" formControlName="contactEmail" placeholder="committee@college.edu">
+                  <mat-error *ngIf="editCommitteeForm.get('contactEmail')?.hasError('email')">Invalid email</mat-error>
+                  <mat-error *ngIf="editCommitteeForm.get('contactEmail')?.hasError('pattern')">Invalid domain (.com, .in, etc)</mat-error>
+                </mat-form-field>
+
+                <mat-form-field appearance="outline">
+                  <mat-label>New Password (optional)</mat-label>
+                  <input matInput type="password" formControlName="password" placeholder="Leave blank to keep current">
+                  <mat-error *ngIf="editCommitteeForm.get('password')?.hasError('minlength')">Min 6 characters</mat-error>
+                </mat-form-field>
+              </div>
+
+              <div class="form-actions">
+                <button mat-raised-button color="primary" type="submit" [disabled]="editCommitteeForm.invalid || isLoading">
+                  {{isLoading ? 'Saving...' : 'Save Changes'}}
+                </button>
+                <button mat-button type="button" (click)="cancelEditCommittee()">Cancel</button>
+              </div>
+            </form>
+          </mat-card-content>
+        </mat-card>
+
+        <table mat-table [dataSource]="committeeDataSource" class="mat-elevation-z8">
+          <ng-container matColumnDef="name">
+            <th mat-header-cell *matHeaderCellDef> Committee Name </th>
+            <td mat-cell *matCellDef="let committee"> {{committee.committeeName}} </td>
+          </ng-container>
+
+          <ng-container matColumnDef="head">
+            <th mat-header-cell *matHeaderCellDef> Head </th>
+            <td mat-cell *matCellDef="let committee"> {{committee.headOfCommittee}} </td>
+          </ng-container>
+
+          <ng-container matColumnDef="email">
+            <th mat-header-cell *matHeaderCellDef> Contact Email </th>
+            <td mat-cell *matCellDef="let committee"> {{committee.contactEmail}} </td>
+          </ng-container>
+
+          <ng-container matColumnDef="actions">
+            <th mat-header-cell *matHeaderCellDef> Actions </th>
+            <td mat-cell *matCellDef="let committee">
+              <button mat-icon-button color="primary" (click)="editCommittee(committee)" matTooltip="Edit Committee">
+                <mat-icon>edit</mat-icon>
+              </button>
+            </td>
+          </ng-container>
+
+          <tr mat-header-row *matHeaderRowDef="committeeColumns"></tr>
+          <tr mat-row *matRowDef="let row; columns: committeeColumns;"></tr>
+        </table>
+      </div>
+    </mat-tab>
+
+    <!-- Approver Management -->
+    <mat-tab label="Approvers">
+      <div class="tab-content">
+        <div class="action-bar">
+          <mat-form-field appearance="outline" class="search-field">
+            <mat-label>Search Approvers</mat-label>
+            <input matInput (keyup)="applyApproverFilter($event)" placeholder="Ex. Dr. Smith" #approverInput>
+            <mat-icon matSuffix>search</mat-icon>
+          </mat-form-field>
+          <button mat-raised-button color="primary" (click)="toggleApproverForm()">
+            <mat-icon>{{showApproverForm ? 'close' : 'add'}}</mat-icon> 
+            {{showApproverForm ? 'Cancel' : 'Add Approver'}}
+          </button>
+        </div>
+
+        <!-- Add Approver Form -->
+        <mat-card *ngIf="showApproverForm" class="registration-form-card">
+          <mat-card-header>
+            <mat-card-title>Add New Approver / Staff</mat-card-title>
+          </mat-card-header>
+          <mat-card-content>
+            <form [formGroup]="approverForm" (ngSubmit)="onRegisterApprover()" class="admin-form">
+              <div class="form-row">
+                <mat-form-field appearance="outline">
+                  <mat-label>Full Name</mat-label>
+                  <input matInput formControlName="name" placeholder="Ex. Dr. Smith">
+                  <mat-error *ngIf="approverForm.get('name')?.hasError('required')">Required</mat-error>
+                </mat-form-field>
+
+                <mat-form-field appearance="outline">
+                  <mat-label>Role</mat-label>
+                  <mat-select formControlName="role">
+                    <mat-option value="APPROVER">Approver</mat-option>
+                    <mat-option value="ADMIN">Admin</mat-option>
+                  </mat-select>
+                </mat-form-field>
+              </div>
+
+              <div class="form-row">
+                <mat-form-field appearance="outline">
+                  <mat-label>Email Address</mat-label>
+                  <input matInput type="email" formControlName="email" placeholder="staff@college.edu">
+                  <mat-error *ngIf="approverForm.get('email')?.hasError('email')">Invalid email</mat-error>
+                  <mat-error *ngIf="approverForm.get('email')?.hasError('pattern')">Invalid domain (.com, .in, etc)</mat-error>
+                </mat-form-field>
+
+                <mat-form-field appearance="outline">
+                  <mat-label>Initial Password</mat-label>
+                  <input matInput type="password" formControlName="password" placeholder="At least 6 chars">
+                  <mat-error *ngIf="approverForm.get('password')?.hasError('minlength')">Too short</mat-error>
+                </mat-form-field>
+              </div>
+
+              <div class="form-actions">
+                <button mat-raised-button color="primary" type="submit" [disabled]="approverForm.invalid || isLoading">
+                  {{isLoading ? 'Adding...' : 'Add Approver'}}
+                </button>
+              </div>
+            </form>
+          </mat-card-content>
+        </mat-card>
+
+        <!-- Edit Approver Form -->
+        <mat-card *ngIf="isEditingApprover" class="registration-form-card edit-approver-form-card">
+          <mat-card-header>
+            <mat-card-title>Edit Approver</mat-card-title>
+            <mat-card-subtitle>Update approver details. Leave password blank to keep it unchanged.</mat-card-subtitle>
+          </mat-card-header>
+          <mat-card-content>
+            <form [formGroup]="editApproverForm" (ngSubmit)="onEditApproverSubmit()" class="admin-form">
+              <div class="form-row">
+                <mat-form-field appearance="outline">
+                  <mat-label>Full Name</mat-label>
+                  <input matInput formControlName="name" placeholder="Ex. Dr. Smith">
+                  <mat-error *ngIf="editApproverForm.get('name')?.hasError('required')">Required</mat-error>
+                  <mat-error *ngIf="editApproverForm.get('name')?.hasError('minlength')">Min 3 characters</mat-error>
+                </mat-form-field>
+
+                <mat-form-field appearance="outline">
+                  <mat-label>Role</mat-label>
+                  <mat-select formControlName="role">
+                    <mat-option value="APPROVER">Approver</mat-option>
+                    <mat-option value="ADMIN">Admin</mat-option>
+                  </mat-select>
+                </mat-form-field>
+              </div>
+
+              <div class="form-row">
+                <mat-form-field appearance="outline">
+                  <mat-label>Email Address</mat-label>
+                  <input matInput type="email" formControlName="email" placeholder="staff@college.edu">
+                  <mat-error *ngIf="editApproverForm.get('email')?.hasError('email')">Invalid email</mat-error>
+                  <mat-error *ngIf="editApproverForm.get('email')?.hasError('pattern')">Invalid domain (.com, .in, etc)</mat-error>
+                </mat-form-field>
+
+                <mat-form-field appearance="outline">
+                  <mat-label>New Password (optional)</mat-label>
+                  <input matInput type="password" formControlName="password" placeholder="Leave blank to keep current">
+                  <mat-error *ngIf="editApproverForm.get('password')?.hasError('minlength')">Min 6 characters</mat-error>
+                </mat-form-field>
+              </div>
+
+              <div class="form-actions">
+                <button mat-raised-button color="primary" type="submit" [disabled]="editApproverForm.invalid || isLoading">
+                  {{isLoading ? 'Saving...' : 'Save Changes'}}
+                </button>
+                <button mat-button type="button" (click)="cancelEditApprover()">Cancel</button>
+              </div>
+            </form>
+          </mat-card-content>
+        </mat-card>
+
+        <table mat-table [dataSource]="approverDataSource" class="mat-elevation-z8">
+          <ng-container matColumnDef="name">
+            <th mat-header-cell *matHeaderCellDef> Name </th>
+            <td mat-cell *matCellDef="let approver"> {{approver.name}} </td>
+          </ng-container>
+          <ng-container matColumnDef="role">
+            <th mat-header-cell *matHeaderCellDef> Role </th>
+            <td mat-cell *matCellDef="let approver"> {{approver.role}} </td>
+          </ng-container>
+          <ng-container matColumnDef="email">
+            <th mat-header-cell *matHeaderCellDef> Email </th>
+            <td mat-cell *matCellDef="let approver"> {{approver.email}} </td>
+          </ng-container>
+          <ng-container matColumnDef="actions">
+            <th mat-header-cell *matHeaderCellDef> Actions </th>
+            <td mat-cell *matCellDef="let approver">
+              <button mat-icon-button color="primary" (click)="editApprover(approver)" matTooltip="Edit Approver">
+                <mat-icon>edit</mat-icon>
+              </button>
+            </td>
+          </ng-container>
+          <tr mat-header-row *matHeaderRowDef="approverColumns"></tr>
+          <tr mat-row *matRowDef="let row; columns: approverColumns;"></tr>
+        </table>
+      </div>
+    </mat-tab>
+
+
+    <!-- Venue Management -->
+    <mat-tab label="Venues">
+      <div class="tab-content">
+        <div class="action-bar">
+          <mat-form-field appearance="outline" class="search-field">
+            <mat-label>Search Venues</mat-label>
+            <input matInput (keyup)="applyVenueFilter($event)" placeholder="Ex. Auditorium" #venueInput>
+            <mat-icon matSuffix>search</mat-icon>
+          </mat-form-field>
+          <button mat-raised-button color="primary" (click)="toggleVenueForm()">
+            <mat-icon>{{showVenueForm ? 'close' : 'add_business'}}</mat-icon> 
+            {{showVenueForm ? 'Cancel' : 'Add New Venue'}}
+          </button>
+        </div>
+
+        <!-- Add/Edit Venue Form -->
+        <mat-card *ngIf="showVenueForm" class="registration-form-card">
+          <mat-card-header>
+            <mat-card-title>{{isEditingVenue ? 'Edit Venue' : 'Add New Venue'}}</mat-card-title>
+          </mat-card-header>
+          <mat-card-content>
+            <form [formGroup]="venueForm" (ngSubmit)="onVenueSubmit()" class="admin-form">
+              <div class="form-row">
+                <mat-form-field appearance="outline">
+                  <mat-label>Venue Name</mat-label>
+                  <input matInput formControlName="venueName" placeholder="Ex. Auditorium">
+                  <mat-error *ngIf="venueForm.get('venueName')?.hasError('required')">Required</mat-error>
+                </mat-form-field>
+
+                <mat-form-field appearance="outline">
+                  <mat-label>Location</mat-label>
+                  <input matInput formControlName="venueLocation" placeholder="Ex. Main Block, 2nd Floor">
+                  <mat-error *ngIf="venueForm.get('venueLocation')?.hasError('required')">Required</mat-error>
+                </mat-form-field>
+              </div>
+
+              <div class="form-row">
+                <mat-form-field appearance="outline">
+                  <mat-label>Capacity</mat-label>
+                  <input matInput type="number" formControlName="capacity" placeholder="Number of people">
+                  <mat-error *ngIf="venueForm.get('capacity')?.hasError('required')">Required</mat-error>
+                  <mat-error *ngIf="venueForm.get('capacity')?.hasError('min')">Must be > 0</mat-error>
+                </mat-form-field>
+
+                <div class="toggle-container">
+                  <mat-slide-toggle formControlName="available" color="primary">
+                    Available for Booking
+                  </mat-slide-toggle>
+                </div>
+              </div>
+
+              <mat-form-field appearance="outline" class="full-width">
+                <mat-label>Facilities</mat-label>
+                <textarea matInput formControlName="facilities" placeholder="Ex. Projector, Sound System, AC"></textarea>
+              </mat-form-field>
+
+              <div class="form-actions">
+                <button mat-raised-button color="primary" type="submit" [disabled]="venueForm.invalid || isLoading">
+                  {{isLoading ? 'Saving...' : (isEditingVenue ? 'Update Venue' : 'Create Venue')}}
+                </button>
+                <button mat-button type="button" (click)="toggleVenueForm()">Cancel</button>
+              </div>
+            </form>
+          </mat-card-content>
+        </mat-card>
+
+        <table mat-table [dataSource]="venueDataSource" class="mat-elevation-z8">
+          <ng-container matColumnDef="name">
+            <th mat-header-cell *matHeaderCellDef> Venue Name </th>
+            <td mat-cell *matCellDef="let venue"> {{venue.venueName}} </td>
+          </ng-container>
+
+          <ng-container matColumnDef="location">
+            <th mat-header-cell *matHeaderCellDef> Location </th>
+            <td mat-cell *matCellDef="let venue"> {{venue.venueLocation}} </td>
+          </ng-container>
+
+          <ng-container matColumnDef="capacity">
+            <th mat-header-cell *matHeaderCellDef> Capacity </th>
+            <td mat-cell *matCellDef="let venue"> {{venue.capacity}} </td>
+          </ng-container>
+
+          <ng-container matColumnDef="facilities">
+            <th mat-header-cell *matHeaderCellDef> Facilities </th>
+            <td mat-cell *matCellDef="let venue"> {{venue.facilities || 'Basic'}} </td>
+          </ng-container>
+
+          <ng-container matColumnDef="status">
+            <th mat-header-cell *matHeaderCellDef> Status </th>
+            <td mat-cell *matCellDef="let venue">
+              <span class="status-chip" [ngClass]="venue.available ? 'active' : 'inactive'">
+                {{venue.available ? 'AVAILABLE' : 'UNAVAILABLE'}}
+              </span>
+            </td>
+          </ng-container>
+
+          <ng-container matColumnDef="actions">
+            <th mat-header-cell *matHeaderCellDef> Actions </th>
+            <td mat-cell *matCellDef="let venue">
+              <button mat-icon-button color="primary" (click)="editVenue(venue)" matTooltip="Edit Venue">
+                <mat-icon>edit</mat-icon>
+              </button>
+              <button mat-icon-button color="warn" (click)="deleteVenue(venue.venueId)" matTooltip="Delete Venue">
+                <mat-icon>delete</mat-icon>
+              </button>
+            </td>
+          </ng-container>
+
+          <tr mat-header-row *matHeaderRowDef="venueColumns"></tr>
+          <tr mat-row *matRowDef="let row; columns: venueColumns;"></tr>
+        </table>
+      </div>
+    </mat-tab>
+
+    <!-- Event Management -->
+    <mat-tab label="Events">
+      <div class="tab-content">
+        <table mat-table [dataSource]="eventDataSource" class="mat-elevation-z8">
+          <ng-container matColumnDef="name">
+            <th mat-header-cell *matHeaderCellDef> Event Name </th>
+            <td mat-cell *matCellDef="let event"> {{event.eventName}} </td>
+          </ng-container>
+          <ng-container matColumnDef="date">
+            <th mat-header-cell *matHeaderCellDef> Date </th>
+            <td mat-cell *matCellDef="let event"> {{event.eventDate}} </td>
+          </ng-container>
+          <ng-container matColumnDef="committee">
+            <th mat-header-cell *matHeaderCellDef> Committee </th>
+            <td mat-cell *matCellDef="let event"> {{event.committee?.committeeName}} </td>
+          </ng-container>
+          <tr mat-header-row *matHeaderRowDef="eventColumns"></tr>
+          <tr mat-row *matRowDef="let row; columns: eventColumns;"></tr>
+        </table>
+      </div>
+    </mat-tab>
+  </mat-tab-group>
+</div>

@@ -16,6 +16,7 @@ import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 import com.example.committeeportal.DTO.LoginRequest;
@@ -62,6 +63,21 @@ public class ApproverController {
         Optional<Approver> approver = approverRepository.findById(id);
         return approver.map(ResponseEntity::ok)
                 .orElseGet(() -> ResponseEntity.notFound().build());
+    }
+
+    // ✅ GET search approvers by name
+    @Operation(summary = "Search approvers by name")
+    @GetMapping("/search")
+    public ResponseEntity<List<Approver>> searchApprovers(@RequestParam("name") String name) {
+        logger.info("Searching approvers with name containing '{}'", name);
+        try {
+            List<Approver> approvers = approverRepository.findByNameContainingIgnoreCase(name);
+            logger.info("Found {} approvers matching '{}'", approvers.size(), name);
+            return ResponseEntity.ok(approvers);
+        } catch (Exception e) {
+            logger.error("Error searching approvers with name containing '{}'", name, e);
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build();
+        }
     }
 
     // ✅ POST register new approver

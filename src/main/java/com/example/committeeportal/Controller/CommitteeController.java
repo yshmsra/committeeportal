@@ -242,6 +242,28 @@
             }
         }
         
+        // Update committee status (Activate/Deactivate)
+        @Operation(summary = "Update committee status (Active/Inactive/Suspended)")
+        @PatchMapping("/{id}/status")
+        public ResponseEntity<Committee> updateCommitteeStatus(
+                @PathVariable Long id, 
+                @RequestParam("status") String status) {
+            logger.info("Updating status for committee ID {} to {}", id, status);
+            try {
+                Optional<Committee> committeeData = committeeRepository.findById(id);
+                if (committeeData.isPresent()) {
+                    Committee committee = committeeData.get();
+                    committee.setStatus(Committee.CommitteeStatus.valueOf(status.toUpperCase()));
+                    Committee updated = committeeRepository.save(committee);
+                    return ResponseEntity.ok(updated);
+                }
+                return ResponseEntity.notFound().build();
+            } catch (Exception e) {
+                logger.error("Error updating committee status", e);
+                return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build();
+            }
+        }
+        
         // Login endpoint
         @Operation(summary = "login user")
         @PostMapping("/login")

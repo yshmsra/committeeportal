@@ -83,11 +83,11 @@ export class RegisterComponent implements OnInit {
       ]);
       // Clear validators for approver name
       nameControl?.setValidators([Validators.minLength(3)]);
-    } else if (roleControl?.value === 'APPROVER') {
+    } else if (roleControl?.value === 'APPROVER' || roleControl?.value === 'ADMIN') {
       // Clear validators for committee fields
       committeeNameControl?.setValidators([]);
       facultyInChargeControl?.setValidators([]);
-      // Require approver name
+      // Require approver/admin name
       nameControl?.setValidators([
         Validators.required,
         Validators.minLength(3)
@@ -189,9 +189,9 @@ export class RegisterComponent implements OnInit {
       }
     }
 
-    if (this.role === 'APPROVER') {
+    if (this.role === 'APPROVER' || this.role === 'ADMIN') {
       if (!this.name?.value) {
-        this.errorMessage = 'Name is required for Approver role';
+        this.errorMessage = `Name is required for ${this.role} role`;
         return;
       }
     }
@@ -207,7 +207,7 @@ export class RegisterComponent implements OnInit {
     if (this.role === 'COMMITTEE') {
       registerData.committeeName = this.committeeName?.value.trim();
       registerData.facultyInChargeName = this.facultyInChargeName?.value.trim();
-    } else if (this.role === 'APPROVER') {
+    } else if (this.role === 'APPROVER' || this.role === 'ADMIN') {
       registerData.name = this.name?.value.trim();
     }
 

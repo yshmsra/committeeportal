@@ -45,7 +45,7 @@ export class LoginComponent {
     const loginData: LoginRequest = {
       email: this.email,
       password: this.password,
-      role: this.role as 'COMMITTEE' | 'APPROVER'
+      role: this.role as 'COMMITTEE' | 'APPROVER' | 'ADMIN'
     };
 
     this.authService.login(loginData).subscribe(
@@ -53,6 +53,8 @@ export class LoginComponent {
         this.isLoading = false;
         if (response.role === 'COMMITTEE') {
           this.router.navigate(['/committee-dashboard']);
+        } else if (response.role === 'ADMIN') {
+          this.router.navigate(['/admin-dashboard']);
         } else if (response.role === 'APPROVER') {
           this.router.navigate(['/approver-dashboard']);
         }

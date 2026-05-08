@@ -37,13 +37,19 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
                 String role = jwtUtil.extractRole(token);
 
                 if (email != null) {
-                    // Create authentication token
+                    // Extract role and create authority
+                    java.util.List<org.springframework.security.core.GrantedAuthority> authorities = new java.util.ArrayList<>();
+                    if (role != null) {
+                        authorities.add(new org.springframework.security.core.authority.SimpleGrantedAuthority("ROLE_" + role.toUpperCase()));
+                    }
+
+                    // Create authentication token with authorities
                     UsernamePasswordAuthenticationToken authToken = 
-                            new UsernamePasswordAuthenticationToken(email, null, new ArrayList<>());
+                            new UsernamePasswordAuthenticationToken(email, null, authorities);
                     authToken.setDetails(userId);
                     
                     SecurityContextHolder.getContext().setAuthentication(authToken);
-                    logger.info("JWT token validated for user: {}", email);
+                    logger.info("JWT token validated for user: {} with roles: {}", email, authorities);
                 }
             } else if (token != null) {
                 logger.warn("JWT token validation failed for path: {}", request.getRequestURI());

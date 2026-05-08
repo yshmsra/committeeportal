@@ -5,20 +5,20 @@ import { Observable, map, catchError, of, timeout } from 'rxjs';
 export interface LoginRequest {
   email: string;
   password: string;
-  role?: 'COMMITTEE' | 'APPROVER';
+  role?: 'COMMITTEE' | 'APPROVER' | 'ADMIN';
 }
 
 export interface RegisterRequest {
   email: string;
   password: string;
-  role: 'COMMITTEE' | 'APPROVER';
+  role: 'COMMITTEE' | 'APPROVER' | 'ADMIN';
   committeeName?: string;
   facultyInChargeName?: string;
   name?: string;
 }
 
 export interface LoginResponse {
-  role: 'COMMITTEE' | 'APPROVER';
+  role: 'COMMITTEE' | 'APPROVER' | 'ADMIN';
   userId: number;
   userName: string;
 }
@@ -26,7 +26,7 @@ export interface LoginResponse {
 export interface ResetPasswordRequest {
   email: string;
   newPassword: string;
-  role: 'COMMITTEE' | 'APPROVER';
+  role: 'COMMITTEE' | 'APPROVER' | 'ADMIN';
 }
 
 @Injectable({
@@ -61,13 +61,13 @@ export class AuthService {
           return loginResponse;
         })
       );
-    } else if (data.role === 'APPROVER') {
+    } else if (data.role === 'APPROVER' || data.role === 'ADMIN') {
       return this.http.post<any>(`${this.apiUrl}/api/approvers/login`, approverLoginData).pipe(
         map(response => {
           const loginResponse: LoginResponse = { 
-            role: 'APPROVER', 
+            role: response.role as any, // Role from backend (could be APPROVER or ADMIN)
             userId: response.userId,
-            userName: response.userName || 'Approver'
+            userName: response.userName || 'User'
           };
           this.saveSession(loginResponse, response.token);
           return loginResponse;
@@ -79,9 +79,9 @@ export class AuthService {
     return this.http.post<any>(`${this.apiUrl}/api/approvers/login`, approverLoginData).pipe(
       map(response => {
         const loginResponse: LoginResponse = { 
-          role: 'APPROVER', 
+          role: response.role as any,
           userId: response.userId,
-          userName: response.userName || 'Approver'
+          userName: response.userName || 'User'
         };
         this.saveSession(loginResponse, response.token);
         return loginResponse;
@@ -223,13 +223,13 @@ export class AuthService {
         headOfCommittee: data.facultyInChargeName
       };
       return this.http.post<any>(`${this.apiUrl}/api/committees/register`, committeeData);
-    } else if (data.role === 'APPROVER') {
-      // For approver registration, send to /api/approvers/register
+    } else if (data.role === 'APPROVER' || data.role === 'ADMIN') {
+      // For approver/admin registration, send to /api/approvers/register
       const approverData = {
         name: data.name,
         email: data.email,
         password: data.password,
-        role: 'APPROVER'
+        role: data.role // This will be either 'APPROVER' or 'ADMIN'
       };
       return this.http.post<any>(`${this.apiUrl}/api/approvers/register`, approverData);
     }
@@ -242,7 +242,7 @@ export class AuthService {
         email: data.email,
         newPassword: data.newPassword
       });
-    } else if (data.role === 'APPROVER') {
+    } else if (data.role === 'APPROVER' || data.role === 'ADMIN') {
       return this.http.post<any>(`${this.apiUrl}/api/approvers/reset-password`, {
         email: data.email,
         newPassword: data.newPassword

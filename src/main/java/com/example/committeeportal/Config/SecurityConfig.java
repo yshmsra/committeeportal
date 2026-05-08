@@ -46,8 +46,8 @@ public class SecurityConfig {
                         // Allow public endpoints
                         .requestMatchers("/api/committees/login").permitAll()
                         .requestMatchers("/api/approvers/login").permitAll()
-                        .requestMatchers("/api/committees/register").permitAll()
-                        .requestMatchers("/api/approvers/register").permitAll()
+                        .requestMatchers("/api/committees/register").hasRole("ADMIN")
+                        .requestMatchers("/api/approvers/register").hasRole("ADMIN")
                         .requestMatchers("/api/committees/reset-password").permitAll()
                         .requestMatchers("/api/approvers/reset-password").permitAll()
                         .requestMatchers("/api/venues/availability").permitAll()

@@ -3,14 +3,10 @@ package com.example.committeeportal.Entity;
 import java.util.List;
 
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
+import org.hibernate.annotations.JdbcTypeCode;
+import org.hibernate.type.SqlTypes;
 
-import jakarta.persistence.Column;
-import jakarta.persistence.Entity;
-import jakarta.persistence.GeneratedValue;
-import jakarta.persistence.GenerationType;
-import jakarta.persistence.Id;
-import jakarta.persistence.OneToMany;
-import jakarta.persistence.Table;
+import jakarta.persistence.*;
 import jakarta.validation.constraints.Email;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.Size;
@@ -18,6 +14,13 @@ import jakarta.validation.constraints.Size;
 @Entity
 @Table(name = "committee")
 public class Committee {
+    
+    public enum CommitteeStatus {
+        ACTIVE,
+        INACTIVE,
+        SUSPENDED
+    }
+    
     
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
@@ -44,12 +47,19 @@ public class Committee {
     @Column(name = "password")
     private String password;
     
-   @OneToMany(mappedBy = "committee")
-   @JsonIgnoreProperties("committee")
-   private List<Event> events;
-   
+    @Enumerated(EnumType.STRING)
+    @JdbcTypeCode(SqlTypes.NAMED_ENUM)
+    @Column(name = "status", nullable = false)
+    private CommitteeStatus status = CommitteeStatus.ACTIVE; // Default status
+
+    @OneToMany(mappedBy = "committee")
+    @JsonIgnoreProperties("committee")
+    private List<Event> events;
+    
     
     // Getters and Setters
+    public CommitteeStatus getStatus() { return status; }
+    public void setStatus(CommitteeStatus status) { this.status = status; }
     public Long getId() { return id; }
     public void setId(Long id) { this.id = id; }
     

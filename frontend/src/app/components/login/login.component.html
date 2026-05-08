@@ -9,6 +9,7 @@
         <select id="loginRole" name="loginRole" [(ngModel)]="role" required>
           <option value="APPROVER">Approver</option>
           <option value="COMMITTEE">Committee</option>
+          <option value="ADMIN">Admin</option>
         </select>
       </div>
 
@@ -52,6 +53,7 @@
         <select id="forgotRole" name="forgotRole" [(ngModel)]="forgotRole" required>
           <option value="APPROVER">Approver</option>
           <option value="COMMITTEE">Committee</option>
+          <option value="ADMIN">Admin</option>
         </select>
       </div>
 
@@ -105,9 +107,6 @@
     </form>
 
     <div class="register-link">
-      <p *ngIf="!showForgotPassword">
-        Don't have an account? <a (click)="navigateToRegister()">Register here</a>
-      </p>
       <p *ngIf="!showForgotPassword">
         <a class="forgot-password-link" (click)="toggleForgotPassword()">Forgot Password?</a>
       </p>
