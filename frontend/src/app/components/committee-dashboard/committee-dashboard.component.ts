@@ -1,4 +1,4 @@
-import { Component, OnInit, OnDestroy } from '@angular/core';
+import { Component, OnInit, OnDestroy, ChangeDetectorRef } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import { Router } from '@angular/router';
 import { AuthService } from '../../services/auth.service';
@@ -7,9 +7,10 @@ interface Venue {
   venueId: number;
   venueName: string;
   capacity?: number;
+  venueLocation?: string;
 }
 
-interface Event {
+interface CommitteeEvent {
   eventId: number;
   eventName: string;
   eventDate: string;
@@ -17,6 +18,9 @@ interface Event {
   createdDate?: string;
   status?: string;
   venue?: Venue;
+  description?: string;
+  startTime?: string;
+  endTime?: string;
 }
 
 interface Approval {
@@ -28,7 +32,7 @@ interface Approval {
 
 interface PermissionApplication {
   applicationId: number;
-  event: Event;
+  event: CommitteeEvent;
   uploadDate: string;
   permissionDoc: string;
   status: string;
@@ -61,7 +65,7 @@ export class CommitteeDashboardComponent implements OnInit, OnDestroy {
   committeeHead: string = '';
 
   // Data
-  events: Event[] = [];
+  events: CommitteeEvent[] = [];
   applications: PermissionApplication[] = [];
   venues: Venue[] = [];
   approvers: any[] = [];
@@ -99,9 +103,22 @@ export class CommitteeDashboardComponent implements OnInit, OnDestroy {
   showDetailsDrawer: boolean = false;
   selectedApp: PermissionApplication | null = null;
 
+  // Event Details Modal
+  showEventDetailsModal: boolean = false;
+  selectedEvent: CommitteeEvent | null = null;
+  isEditingEvent: boolean = false;
+  editEventData: any = null;
+  eventDetailsError: string = '';
+  isEditingAfterRejection: boolean = false; // Track if editing after rejection to re-upload docs
+
+  // Filters
+  eventStatusFilter: string = ''; // 'UPCOMING', 'COMPLETED', '' for all
+  approvalStatusFilter: string = ''; // 'PENDING', 'APPROVED', 'REJECTED', '' for all
+  filteredApprovals: Approval[] = [];
+
   // Targeted Approver Submit Modal
   showSubmitModal: boolean = false;
-  selectedEventToSubmit: Event | null = null;
+  selectedEventToSubmit: CommitteeEvent | null = null;
   selectedApproverId: number | null = null;
   isSubmittingPermission: boolean = false;
 
@@ -114,7 +131,8 @@ export class CommitteeDashboardComponent implements OnInit, OnDestroy {
   constructor(
     private http: HttpClient,
     private router: Router,
-    private authService: AuthService
+    private authService: AuthService,
+    private cdr: ChangeDetectorRef
   ) {}
 
   ngOnInit(): void {
@@ -163,7 +181,7 @@ export class CommitteeDashboardComponent implements OnInit, OnDestroy {
     this.errorMessage = ''; // Clear previous errors
 
     // Load this committee's events
-    this.http.get<Event[]>(`${this.BASE}/events/committee/${this.committeeId}`)
+    this.http.get<CommitteeEvent[]>(`${this.BASE}/api/events/committee/${this.committeeId}`)
       .subscribe({
         next: (events) => {
           this.events = events || [];
@@ -181,7 +199,7 @@ export class CommitteeDashboardComponent implements OnInit, OnDestroy {
 
   loadApplications(): void {
     // Fetch all permission applications, then filter to this committee's events
-    this.http.get<PermissionApplication[]>(`${this.BASE}/permissions`)
+    this.http.get<PermissionApplication[]>(`${this.BASE}/api/permissions`)
       .subscribe({
         next: (apps) => {
           const myEventIds = new Set(this.events.map(e => e.eventId));
@@ -224,6 +242,39 @@ export class CommitteeDashboardComponent implements OnInit, OnDestroy {
         error: (err) => {
           console.error('Failed to load venues:', err);
           this.venues = [];
+        }
+      });
+  }
+
+  // Load only available venues for new event creation
+  loadAvailableVenues(): void {
+    this.http.get<Venue[]>(`${this.BASE}/api/venues/available`)
+      .subscribe({
+        next: (venues) => {
+          this.venues = venues || [];
+          console.log('Available venues loaded:', this.venues);
+        },
+        error: (err) => {
+          console.error('Failed to load available venues:', err);
+          // Fallback to all venues
+          this.loadVenues();
+        }
+      });
+  }
+
+  // Load venue details by ID
+  loadVenueDetails(venueId: number): void {
+    this.http.get<Venue>(`${this.BASE}/api/venues/${venueId}`)
+      .subscribe({
+        next: (venue) => {
+          console.log('Venue details loaded:', venue);
+          // Update selected event venue with full details
+          if (this.selectedEvent && this.selectedEvent.venue?.venueId === venueId) {
+            this.selectedEvent.venue = venue;
+          }
+        },
+        error: (err) => {
+          console.error('Failed to load venue details:', err);
         }
       });
   }
@@ -278,6 +329,171 @@ export class CommitteeDashboardComponent implements OnInit, OnDestroy {
           }
         },
         error: (err) => console.error('Failed to load committee details:', err)
+      });
+  }
+
+  // ─── Event Management (NEW ENDPOINTS) ─────────────────
+  loadEventDetails(eventId: number): void {
+    this.http.get<CommitteeEvent>(`${this.BASE}/api/events/${eventId}`)
+      .subscribe({
+        next: (event) => {
+          this.selectedEvent = event;
+          if (event.venue?.venueId) {
+            this.loadVenueDetails(event.venue.venueId);
+          }
+        },
+        error: (err) => {
+          this.eventDetailsError = 'Failed to load event details.';
+          console.error(err);
+        }
+      });
+  }
+
+  // Load events by status filter
+  loadEventsByStatus(status: string): void {
+    if (!status) {
+      this.eventStatusFilter = '';
+      this.loadData();
+      return;
+    }
+
+    this.eventStatusFilter = status;
+    this.isLoading = true;
+    
+    this.http.get<CommitteeEvent[]>(`${this.BASE}/api/events/committee/${this.committeeId}`)
+      .subscribe({
+        next: (events) => {
+          const filtered = (events || []).filter(e => 
+            (e.status || '').toUpperCase() === status.toUpperCase()
+          );
+          this.events = filtered;
+          this.isLoading = false;
+        },
+        error: (err) => {
+          this.eventStatusFilter = '';
+          this.errorMessage = 'Failed to filter events by status.';
+          this.isLoading = false;
+          console.error(err);
+        }
+      });
+  }
+
+  updateEvent(eventId: number, eventData: any): void {
+    this.http.put<CommitteeEvent>(`${this.BASE}/api/events/${eventId}`, eventData)
+      .subscribe({
+        next: (updatedEvent) => {
+          this.successMessage = `Event "${updatedEvent.eventName}" updated successfully.`;
+          this.closeEventDetailsModal();
+          this.loadData();
+          setTimeout(() => this.successMessage = '', 4000);
+        },
+        error: (err) => {
+          this.eventDetailsError = 'Failed to update event.';
+          console.error(err);
+          setTimeout(() => this.eventDetailsError = '', 4000);
+        }
+      });
+  }
+
+  // Delete/Cancel event
+  deleteEvent(eventId: number, eventName: string): void {
+    if (!confirm(`Are you sure you want to cancel the event "${eventName}"?`)) {
+      return;
+    }
+
+    this.http.delete(`${this.BASE}/api/events/${eventId}`)
+      .subscribe({
+        next: () => {
+          this.successMessage = `Event "${eventName}" has been cancelled.`;
+          this.closeEventDetailsModal();
+          this.loadData();
+          setTimeout(() => this.successMessage = '', 4000);
+        },
+        error: (err) => {
+          this.errorMessage = 'Failed to cancel event.';
+          console.error(err);
+          setTimeout(() => this.errorMessage = '', 4000);
+        }
+      });
+  }
+
+  // Delete only the application
+  deleteApplication(appId: number): void {
+    if (!confirm('Are you sure you want to delete this permission application? You will need to apply again.')) {
+      return;
+    }
+
+    this.http.delete(`${this.BASE}/api/permissions/${appId}`)
+      .subscribe({
+        next: () => {
+          this.successMessage = 'Application deleted successfully. You can now edit the event or re-apply.';
+          this.closeDetails();
+          this.loadData();
+          setTimeout(() => this.successMessage = '', 4000);
+        },
+        error: (err) => {
+          this.errorMessage = 'Failed to delete application.';
+          console.error(err);
+          setTimeout(() => this.errorMessage = '', 4000);
+        }
+      });
+  }
+
+  // ─── Approval Status Filtering (NEW ENDPOINTS) ────────
+  // Load approvals filtered by status
+  loadApprovalsByStatus(status: string): void {
+    if (!status) {
+      this.approvalStatusFilter = '';
+      this.loadApplications();
+      return;
+    }
+
+    this.approvalStatusFilter = status;
+    this.isLoading = true;
+
+    this.http.get<Approval[]>(`${this.BASE}/api/approvals/status/${status}`)
+      .subscribe({
+        next: (approvals) => {
+          // Filter approvals that belong to this committee's applications
+          const myAppIds = new Set(this.applications.map(a => a.applicationId));
+          this.filteredApprovals = (approvals || []).filter(a => 
+            myAppIds.has((a as any).applicationId)
+          );
+          this.isLoading = false;
+        },
+        error: (err) => {
+          this.approvalStatusFilter = '';
+          this.errorMessage = 'Failed to filter approvals.';
+          this.isLoading = false;
+          console.error(err);
+        }
+      });
+  }
+
+  // ─── Permission Application Details (NEW ENDPOINT) ────
+  // Load individual permission application details
+  loadPermissionApplicationDetails(appId: number): void {
+    this.http.get<PermissionApplication>(`${this.BASE}/api/permissions/${appId}`)
+      .subscribe({
+        next: (app) => {
+          this.selectedApp = app;
+          // Also fetch approvals for this application
+          if (app.approvals === undefined) {
+            this.http.get<Approval[]>(`${this.BASE}/api/approvals/application/${app.applicationId}`)
+              .subscribe({
+                next: (approvals) => {
+                  if (this.selectedApp) {
+                    this.selectedApp.approvals = approvals;
+                    this.cdr.detectChanges();
+                  }
+                }
+              });
+          }
+          this.cdr.detectChanges();
+        },
+        error: (err) => {
+          console.error('Failed to load permission application details:', err);
+        }
       });
   }
 
@@ -426,7 +642,7 @@ export class CommitteeDashboardComponent implements OnInit, OnDestroy {
       payload.endTime = this.newEvent.endTime;
     }
 
-    this.http.post<Event>(`${this.BASE}/events`, payload).subscribe({
+    this.http.post<CommitteeEvent>(`${this.BASE}/api/events`, payload).subscribe({
       next: (createdEvent) => {
         this.isSubmittingEvent = false;
         this.successMessage = `Event "${createdEvent.eventName}" created successfully.`;
@@ -445,11 +661,30 @@ export class CommitteeDashboardComponent implements OnInit, OnDestroy {
   }
 
   // ─── Submit permission application ──────
-  submitPermission(event: Event): void {
-    this.selectedEventToSubmit = event;
+  submitPermission(committeeEvent: CommitteeEvent, event?: MouseEvent): void {
+    if (event) {
+      event.preventDefault();
+      event.stopPropagation();
+    }
+
+    console.log('Opening submit permission modal for event:', committeeEvent);
+    
+    // reset current view state to avoid stale data
+    this.showDetailsDrawer = false;
+    this.showEventDetailsModal = false;
+    
+    // Explicitly set the data
+    this.selectedEventToSubmit = { ...committeeEvent }; 
     this.selectedApproverId = null;
+    this.selectedFiles = [];
     this.errorMessage = '';
-    this.showSubmitModal = true;
+    
+    // Trigger modal visibility with a slight delay to ensure it doesn't catch the same click event
+    setTimeout(() => {
+      this.showSubmitModal = true;
+      this.cdr.detectChanges();
+      console.log('showSubmitModal is now:', this.showSubmitModal);
+    }, 50);
   }
 
   closeSubmitModal(): void {
@@ -459,6 +694,7 @@ export class CommitteeDashboardComponent implements OnInit, OnDestroy {
     this.selectedFiles = [];
     this.errorMessage = '';
     this.isSubmittingPermission = false;
+    this.cdr.detectChanges();
   }
 
   confirmSubmitPermission(): void {
@@ -511,26 +747,240 @@ export class CommitteeDashboardComponent implements OnInit, OnDestroy {
     });
   }
 
-  hasApplication(event: Event): boolean {
-    return this.applications.some(a => a.event?.eventId === event.eventId);
+  hasApplication(committeeEvent: CommitteeEvent): boolean {
+    return this.applications.some(a => a.event?.eventId === committeeEvent.eventId);
   }
 
-  getApplicationForEvent(event: Event): PermissionApplication | undefined {
-    return this.applications.find(a => a.event?.eventId === event.eventId);
+  getApplicationForEvent(committeeEvent: CommitteeEvent): PermissionApplication | undefined {
+    return this.applications.find(a => a.event?.eventId === committeeEvent.eventId);
   }
 
   // ─── Details drawer ──────────────────────
   openDetails(app: PermissionApplication): void {
-    this.selectedApp = app;
+    // Reset other views
+    this.showSubmitModal = false;
+    this.showEventDetailsModal = false;
+    
+    this.loadPermissionApplicationDetails(app.applicationId);
     this.showDetailsDrawer = true;
+    this.cdr.detectChanges();
+  }
+
+  // Handle actions for rejected applications from the details drawer
+  handleRejectedApplicationAction(action: 'edit' | 'delete', app: PermissionApplication, event?: MouseEvent): void {
+    if (event) {
+      event.preventDefault();
+      event.stopPropagation();
+    }
+
+    if (action === 'delete') {
+      if (!confirm('Are you sure you want to cancel this event? This will delete both the application and the event.')) {
+        return;
+      }
+      // First delete the application
+      this.http.delete(`${this.BASE}/api/permissions/${app.applicationId}`)
+        .subscribe({
+          next: () => {
+            // Then delete the event
+            this.deleteEvent(app.event.eventId, app.event.eventName);
+            this.closeDetails();
+          },
+          error: (err) => {
+            this.errorMessage = 'Failed to delete application. Cannot delete event.';
+            console.error(err);
+          }
+        });
+    } else if (action === 'edit') {
+      console.log('Action: edit for rejected application', app);
+      
+      // 1. Set the event and edit data immediately
+      this.selectedEvent = { ...app.event };
+      this.isEditingAfterRejection = true;
+      this.isEditingEvent = true;
+      this.editEventData = {
+        eventName: app.event.eventName,
+        eventDate: app.event.eventDate,
+        expectedParticipants: app.event.expectedParticipants,
+        description: app.event.description,
+        status: app.event.status
+      };
+      
+      // 2. Delete the old application immediately so they can apply fresh
+      this.http.delete(`${this.BASE}/api/permissions/${app.applicationId}`)
+        .subscribe({
+          next: () => {
+            console.log('Old application deleted for fresh re-application');
+            this.successMessage = 'Old application cleared. You can now edit and re-apply.';
+            this.loadData();
+            setTimeout(() => this.successMessage = '', 3000);
+          },
+          error: (err) => console.error('Error clearing old application', err)
+        });
+
+      // 3. Close the details drawer and open the edit modal
+      this.closeDetails();
+      
+      setTimeout(() => {
+        console.log('Opening event details modal in edit mode');
+        this.showEventDetailsModal = true;
+        this.cdr.detectChanges();
+      }, 100);
+    }
   }
 
   closeDetails(): void {
     this.showDetailsDrawer = false;
     this.selectedApp = null;
+    this.cdr.detectChanges();
   }
 
-  // ─── Helpers ────────────────────────────
+  // ─── Event Details Modal ─────────────────
+  openEventDetailsModal(committeeEvent: CommitteeEvent): void {
+    this.loadEventDetails(committeeEvent.eventId);
+    this.isEditingEvent = false;
+    this.editEventData = null;
+    this.eventDetailsError = '';
+    this.showEventDetailsModal = true;
+  }
+
+  closeEventDetailsModal(): void {
+    this.showEventDetailsModal = false;
+    this.selectedEvent = null;
+    this.isEditingEvent = false;
+    this.editEventData = null;
+    this.eventDetailsError = '';
+    this.isEditingAfterRejection = false;
+  }
+
+  // ─── Check if event can be edited ─────────────────────
+  canEditEvent(eventId: number): boolean {
+    // Find the application for this event
+    const app = this.applications.find(a => a.event?.eventId === eventId);
+    
+    // If no application exists, event can be edited (not yet submitted)
+    if (!app) {
+      return true;
+    }
+
+    // If application is REJECTED, event can be edited
+    if ((app.status || '').toUpperCase() === 'REJECTED') {
+      return true;
+    }
+
+    // Otherwise (PENDING or APPROVED), event cannot be edited
+    return false;
+  }
+
+  // ─── Check if this is editing after rejection ─────────────
+  isRejectedApplication(eventId: number): boolean {
+    const app = this.applications.find(a => a.event?.eventId === eventId);
+    return !!(app && (app.status || '').toUpperCase() === 'REJECTED');
+  }
+
+  startEditingEvent(): void {
+    if (!this.selectedEvent) return;
+    
+    // Check if this event has a rejected application
+    this.isEditingAfterRejection = this.isRejectedApplication(this.selectedEvent.eventId);
+    
+    this.isEditingEvent = true;
+    this.editEventData = {
+      eventName: this.selectedEvent.eventName,
+      eventDate: this.selectedEvent.eventDate,
+      expectedParticipants: this.selectedEvent.expectedParticipants,
+      description: this.selectedEvent.description,
+      status: this.selectedEvent.status
+    };
+  }
+
+  cancelEditingEvent(): void {
+    this.isEditingEvent = false;
+    this.editEventData = null;
+    this.eventDetailsError = '';
+    this.isEditingAfterRejection = false;
+    this.selectedFiles = [];
+  }
+
+  saveEventChanges(): void {
+    if (!this.selectedEvent || !this.editEventData) return;
+    
+    // Validate
+    if (!this.editEventData.eventName?.trim()) {
+      this.eventDetailsError = 'Event name is required.';
+      return;
+    }
+
+    // If editing after rejection, require documents
+    if (this.isEditingAfterRejection && this.selectedFiles.length === 0) {
+      this.eventDetailsError = 'Please upload at least one document for re-submission.';
+      return;
+    }
+
+    // Update the event
+    this.updateEvent(this.selectedEvent.eventId, this.editEventData);
+
+  }
+
+  // ─── Re-submit rejected application with new documents ─────
+  resubmitRejectedApplication(app: PermissionApplication): void {
+    if (this.selectedFiles.length === 0) {
+      this.eventDetailsError = 'No documents to submit.';
+      return;
+    }
+
+    const formData = new FormData();
+    formData.append('applicationId', app.applicationId.toString());
+    
+    // Add files
+    this.selectedFiles.forEach(file => {
+      formData.append('documents', file);
+    });
+
+    this.uploadingDocuments = true;
+    this.http.post<any>(`${this.BASE}/api/permissions/${app.applicationId}/resubmit`, formData)
+      .subscribe({
+        next: () => {
+          this.successMessage = 'Application re-submitted successfully with updated documents.';
+          this.uploadingDocuments = false;
+          this.selectedFiles = [];
+          this.cancelEditingEvent();
+          this.closeEventDetailsModal();
+          this.loadData();
+          setTimeout(() => this.successMessage = '', 4000);
+        },
+        error: (err) => {
+          this.uploadingDocuments = false;
+          this.eventDetailsError = err.error?.message || 'Failed to re-submit application.';
+          console.error(err);
+        }
+      });
+  }
+
+  // ─── Remove selected file ────────────────────────────────
+  removeFile(file: File): void {
+    this.selectedFiles = this.selectedFiles.filter(f => f !== file);
+  }
+
+  // ─── Filter Handlers ────────────────────
+  onApprovalStatusFilterChange(event: any): void {
+    const value = (event.target as HTMLSelectElement).value;
+    this.approvalStatusFilter = value;
+    if (value) {
+      this.loadApprovalsByStatus(value);
+    } else {
+      this.loadApplications();
+    }
+  }
+
+  onEventStatusFilterChange(event: any): void {
+    const value = (event.target as HTMLSelectElement).value;
+    this.eventStatusFilter = value;
+    if (value) {
+      this.loadEventsByStatus(value);
+    } else {
+      this.loadData();
+    }
+  }
   getStatusClass(status: string): string {
     const s = (status || '').toUpperCase();
     if (s === 'APPROVED') return 'badge-approved';
@@ -543,6 +993,16 @@ export class CommitteeDashboardComponent implements OnInit, OnDestroy {
     const year = today.getFullYear();
     const month = String(today.getMonth() + 1).padStart(2, '0');
     const day = String(today.getDate()).padStart(2, '0');
+    return `${year}-${month}-${day}`;
+  }
+
+  // Get tomorrow's date in YYYY-MM-DD format (minimum allowed date for events)
+  getMinEventDateString(): string {
+    const tomorrow = new Date();
+    tomorrow.setDate(tomorrow.getDate() + 1); // Tomorrow
+    const year = tomorrow.getFullYear();
+    const month = String(tomorrow.getMonth() + 1).padStart(2, '0');
+    const day = String(tomorrow.getDate()).padStart(2, '0');
     return `${year}-${month}-${day}`;
   }
 

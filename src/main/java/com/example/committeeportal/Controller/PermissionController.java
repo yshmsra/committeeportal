@@ -19,6 +19,7 @@ import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
@@ -46,7 +47,7 @@ import io.swagger.v3.oas.annotations.tags.Tag;
 
 @Tag(name = "permission", description = "Operations related to permissions")
 @RestController
-@RequestMapping("/permissions")
+@RequestMapping("/api/permissions")
 public class PermissionController {
 
     private static final Logger logger = LoggerFactory.getLogger(PermissionController.class);
@@ -174,7 +175,7 @@ public class PermissionController {
             }
 
             // Validate at least one file is provided
-            if (files == null || files.length == 0) {
+            if (files.length == 0) {
                 logger.warn("No files provided for application submission");
                 return ResponseEntity.badRequest()
                         .body(new ErrorResponse("At least one document is required"));
@@ -195,7 +196,8 @@ public class PermissionController {
                     continue;
 
                 // Validate PDF
-                if (!file.getContentType().equals("application/pdf")) {
+                String contentType = file.getContentType();
+                if (contentType == null || !contentType.equals("application/pdf")) {
                     logger.warn("Invalid file type for file: {}", file.getOriginalFilename());
                     return ResponseEntity.badRequest()
                             .body(new ErrorResponse("Only PDF files are allowed. File: " + file.getOriginalFilename()));
@@ -251,6 +253,103 @@ public class PermissionController {
             String specificError = (e.getCause() != null) ? e.getCause().getMessage() : e.getMessage();
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
                     .body(new ErrorResponse("Failed to submit: " + specificError));
+        }
+    }
+
+    // Re-submit a rejected permission application with new documents
+    @Operation(summary = "Re-submit a rejected permission application with updated documents")
+    @PostMapping("/{applicationId}/resubmit")
+    public ResponseEntity<?> resubmitRejectedApplication(
+            @PathVariable Long applicationId,
+            @RequestParam("documents") MultipartFile[] files) {
+
+        logger.info("Re-submitting rejected permission application ID {} with {} new documents",
+                applicationId, files.length);
+
+        try {
+            // Find existing application
+            Optional<PermissionApplication> appOpt = permissionRepo.findById(applicationId);
+            if (!appOpt.isPresent()) {
+                logger.warn("Permission application with ID {} not found", applicationId);
+                return ResponseEntity.status(HttpStatus.NOT_FOUND)
+                        .body(new ErrorResponse("Permission application not found"));
+            }
+
+            PermissionApplication application = appOpt.get();
+
+            // Verify application is rejected
+            if (!"REJECTED".equalsIgnoreCase(application.getStatus())) {
+                logger.warn("Cannot re-submit application ID {} - status is {} (not REJECTED)",
+                        applicationId, application.getStatus());
+                return ResponseEntity.status(HttpStatus.BAD_REQUEST)
+                        .body(new ErrorResponse("Only rejected applications can be re-submitted. Current status: " + application.getStatus()));
+            }
+
+            // Validate files
+            if (files.length == 0) {
+                logger.warn("No files provided for re-submission of application {}", applicationId);
+                return ResponseEntity.badRequest()
+                        .body(new ErrorResponse("At least one document is required"));
+            }
+
+            // Create upload directory if it doesn't exist
+            File uploadDirectory = new File(uploadDir);
+            if (!uploadDirectory.exists()) {
+                uploadDirectory.mkdirs();
+            }
+
+            // Process files
+            StringBuilder docPaths = new StringBuilder();
+            for (MultipartFile file : files) {
+                if (file.isEmpty())
+                    continue;
+
+                // Validate PDF
+                String contentType = file.getContentType();
+                if (contentType == null || !contentType.equals("application/pdf")) {
+                    logger.warn("Invalid file type for re-submission: {}", file.getOriginalFilename());
+                    return ResponseEntity.badRequest()
+                            .body(new ErrorResponse("Only PDF files are allowed"));
+                }
+
+                try {
+                    // Generate unique filename
+                    String uniqueFileName = UUID.randomUUID().toString() + ".pdf";
+                    Path filePath = Paths.get(uploadDir, uniqueFileName);
+
+                    // Save file to disk
+                    Files.write(filePath, file.getBytes());
+                    logger.info("New file saved for re-submission: {}", filePath);
+
+                    // Build document path
+                    if (docPaths.length() > 0) {
+                        docPaths.append(",");
+                    }
+                    docPaths.append("/documents/").append(uniqueFileName);
+
+                } catch (IOException e) {
+                    logger.error("Error saving file during re-submission: {}", file.getOriginalFilename(), e);
+                    return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                            .body(new ErrorResponse("Failed to save file"));
+                }
+            }
+
+            // Update application with new documents and status
+            application.setPermissionDoc(docPaths.toString());
+            application.setStatus("Resubmitted");
+            application.setUploadDate(LocalDate.now());
+
+            permissionRepo.save(application);
+            logger.info("Permission application {} re-submitted with {} new documents",
+                    applicationId, files.length);
+
+            return ResponseEntity.ok(new SuccessResponse(
+                    "Application re-submitted successfully with " + files.length + " document(s)"));
+
+        } catch (Exception e) {
+            logger.error("Error re-submitting application {}: {}", applicationId, e.getMessage(), e);
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                    .body(new ErrorResponse("Failed to re-submit: " + e.getMessage()));
         }
     }
 
@@ -398,6 +497,43 @@ public class PermissionController {
         } catch (Exception e) {
             logger.error("Error downloading file: {}", filename, e);
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build();
+        }
+    }
+    // Delete a permission application
+    @Operation(summary = "Delete permission application")
+    @DeleteMapping("/{id}")
+    public ResponseEntity<?> deleteApplication(@PathVariable Long id) {
+        logger.info("Deleting permission application with ID {}", id);
+        try {
+            Optional<PermissionApplication> appOpt = permissionRepo.findById(id);
+            if (appOpt.isPresent()) {
+                PermissionApplication app = appOpt.get();
+                
+                // 1. Delete associated approvals first to avoid FK constraint violation
+                List<Approval> approvals = approvalRepo.findByPermissionApplication_ApplicationId(id);
+                if (!approvals.isEmpty()) {
+                    logger.info("Deleting {} associated approvals for application {}", approvals.size(), id);
+                    approvalRepo.deleteAll(approvals);
+                }
+                
+                // 2. If it's rejected, reset the event status
+                Event event = app.getEvent();
+                if (event != null && "REJECTED".equalsIgnoreCase(app.getStatus())) {
+                    event.setStatus("Upcoming");
+                    eventRepo.save(event);
+                }
+                
+                // 3. Delete the application
+                permissionRepo.delete(app);
+                logger.info("Permission application {} deleted successfully", id);
+                return ResponseEntity.ok(new SuccessResponse("Application deleted successfully"));
+            } else {
+                return ResponseEntity.status(HttpStatus.NOT_FOUND).body(new ErrorResponse("Application not found"));
+            }
+        } catch (Exception e) {
+            logger.error("Error deleting application with ID {}: {}", id, e.getMessage(), e);
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                    .body(new ErrorResponse("Error deleting application: " + e.getMessage()));
         }
     }
 }

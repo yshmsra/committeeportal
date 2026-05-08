@@ -2,6 +2,8 @@ package com.example.committeeportal.Config;
 
 import java.util.Arrays;
 
+import org.springframework.security.web.util.matcher.AntPathRequestMatcher;
+
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -44,15 +46,16 @@ public class SecurityConfig {
                 .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
                 .authorizeHttpRequests(auth -> auth
                         // Allow public endpoints
-                        .requestMatchers("/api/committees/login").permitAll()
+                        .requestMatchers("/api/permissions/**").permitAll()
+                        .requestMatchers("/api/permissions/submit-with-documents").permitAll()
                         .requestMatchers("/api/approvers/login").permitAll()
                         .requestMatchers("/api/committees/register").permitAll()
                         .requestMatchers("/api/approvers/register").permitAll()
                         .requestMatchers("/api/committees/reset-password").permitAll()
                         .requestMatchers("/api/approvers/reset-password").permitAll()
                         .requestMatchers("/api/venues/availability").permitAll()
-                        .requestMatchers("/permissions/submit-with-documents").permitAll()
-                        .requestMatchers("/permissions/documents/download/**").permitAll()
+                        .requestMatchers("/api/permissions/submit-with-documents").permitAll()
+                        .requestMatchers("/api/permissions/documents/download/**").permitAll()
                         .requestMatchers("/swagger-ui/**").permitAll()
                         .requestMatchers("/v3/api-docs/**").permitAll()
                         .requestMatchers("/swagger-ui.html").permitAll()
