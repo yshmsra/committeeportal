@@ -280,6 +280,10 @@
                   <label>Role / Department</label>
                   <input type="text" [(ngModel)]="profile.role" [disabled]="!isEditingProfile">
                 </div>
+                <div class="form-group">
+                  <label>Digital Signature (Metadata)</label>
+                  <input type="text" [(ngModel)]="profile.digitalSignature" [disabled]="!isEditingProfile" placeholder="e.g. Approved_By_Dean">
+                </div>
               </div>
               <div class="profile-actions" *ngIf="isEditingProfile">
                 <button class="btn-save-profile" (click)="saveProfile()" [disabled]="isSubmitting">
