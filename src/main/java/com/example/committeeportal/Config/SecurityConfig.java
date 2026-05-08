@@ -2,8 +2,6 @@ package com.example.committeeportal.Config;
 
 import java.util.Arrays;
 
-import org.springframework.security.web.util.matcher.AntPathRequestMatcher;
-
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -48,6 +46,7 @@ public class SecurityConfig {
                         // Allow public endpoints
                         .requestMatchers("/api/permissions/**").permitAll()
                         .requestMatchers("/api/permissions/submit-with-documents").permitAll()
+                        .requestMatchers("/api/committees/login").permitAll()
                         .requestMatchers("/api/approvers/login").permitAll()
                         .requestMatchers("/api/committees/register").hasRole("ADMIN")
                         .requestMatchers("/api/approvers/register").hasRole("ADMIN")
