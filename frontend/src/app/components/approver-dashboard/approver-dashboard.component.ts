@@ -21,34 +21,6 @@ interface PermissionApplication {
   status: string;
 }
 
-interface Booking {
-  bookingId: number;
-  eventName: string;
-  venueName: string;
-  eventDate: string;
-  startTime: string;
-  endTime: string;
-  status: string;
-}
-
-interface Venue {
-  venueId: number;
-  venueName: string;
-  venueLocation: string;
-  capacity: number;
-  available: boolean;
-  facilities: string;
-}
-
-interface Approver {
-  approverId: number;
-  name: string;
-  email: string;
-  role: string;
-  digitalSignature?: string;
-  password?: string;
-}
-
 @Component({
   selector: 'app-approver-dashboard',
   templateUrl: './approver-dashboard.component.html',
@@ -63,21 +35,11 @@ export class ApproverDashboardComponent implements OnInit, OnDestroy {
   private pollInterval: any;
   private readonly POLL_MS = 30000; // 30 seconds
 
-  // Backend base URL – matches Spring Boot
+  // Backend base URL – matches Spring Boot (no /api prefix for /permissions)
   private readonly BASE = ''; // Use relative path for production
 
-  // Active Tab
-  activeTab: 'applications' | 'bookings' | 'venues' | 'profile' = 'applications';
-
-  // Data arrays
   applications: PermissionApplication[] = [];
   filteredApplications: PermissionApplication[] = [];
-  bookings: Booking[] = [];
-  venues: Venue[] = [];
-  
-  // Profile state
-  profile: Approver = { approverId: 0, name: '', email: '', role: '' };
-  isEditingProfile: boolean = false;
 
   isLoading: boolean = false;
   errorMessage: string = '';
@@ -94,12 +56,6 @@ export class ApproverDashboardComponent implements OnInit, OnDestroy {
   rejectRemarks: string = '';
   modalError: string = '';
   isSubmitting: boolean = false;
-
-  // Venue details modal
-  showVenueSchedule: boolean = false;
-  selectedVenue: Venue | null = null;
-  venueAvailability: any = null;
-  scheduleDate: string = new Date().toISOString().split('T')[0];
 
   // Stats
   pendingCount: number = 0;
@@ -143,24 +99,13 @@ export class ApproverDashboardComponent implements OnInit, OnDestroy {
     this.approverId = this.authService.getApproverId();
     this.approverName = this.authService.getUserName();
     this.loadApplications();
-    this.loadProfile();
+    // Auto-refresh disabled - users will manually refresh when needed
   }
 
   ngOnDestroy(): void {
     if (this.pollInterval) {
       clearInterval(this.pollInterval);
     }
-  }
-
-  switchTab(tab: 'applications' | 'bookings' | 'venues' | 'profile'): void {
-    this.activeTab = tab;
-    this.errorMessage = '';
-    this.successMessage = '';
-    
-    if (tab === 'applications') this.loadApplications();
-    if (tab === 'bookings') this.loadBookings();
-    if (tab === 'venues') this.loadVenues();
-    if (tab === 'profile') this.loadProfile();
   }
 
   loadApplications(): void {
@@ -221,103 +166,6 @@ export class ApproverDashboardComponent implements OnInit, OnDestroy {
 
   onSearch(): void {
     this.applyFilter();
-  }
-
-  // --- Bookings ---
-  loadBookings(): void {
-    this.isLoading = true;
-    this.http.get<Booking[]>(`${this.BASE}/api/bookings`)
-      .subscribe({
-        next: (data) => {
-          this.bookings = data || [];
-          this.isLoading = false;
-        },
-        error: (err) => {
-          this.errorMessage = 'Failed to load confirmed bookings.';
-          this.isLoading = false;
-        }
-      });
-  }
-
-  // --- Venues ---
-  loadVenues(): void {
-    this.isLoading = true;
-    this.http.get<Venue[]>(`${this.BASE}/api/venues`)
-      .subscribe({
-        next: (data) => {
-          this.venues = data || [];
-          this.isLoading = false;
-        },
-        error: (err) => {
-          this.errorMessage = 'Failed to load venue information.';
-          this.isLoading = false;
-        }
-      });
-  }
-
-  openVenueSchedule(venue: Venue): void {
-    this.selectedVenue = venue;
-    this.showVenueSchedule = true;
-    this.loadVenueAvailability();
-  }
-
-  loadVenueAvailability(): void {
-    if (!this.selectedVenue) return;
-    this.isLoading = true;
-    this.http.get(`${this.BASE}/api/venues/availability?date=${this.scheduleDate}`)
-      .subscribe({
-        next: (data: any) => {
-          const venueInfo = data.find((v: any) => v.venueId === this.selectedVenue?.venueId);
-          this.venueAvailability = venueInfo ? venueInfo.timeSlots : [];
-          this.isLoading = false;
-        },
-        error: (err) => {
-          this.errorMessage = 'Failed to load schedule.';
-          this.isLoading = false;
-        }
-      });
-  }
-
-  closeVenueSchedule(): void {
-    this.showVenueSchedule = false;
-    this.selectedVenue = null;
-    this.venueAvailability = null;
-  }
-
-  // --- Profile ---
-  loadProfile(): void {
-    this.http.get<Approver>(`${this.BASE}/api/approvers/${this.approverId}`)
-      .subscribe({
-        next: (data) => {
-          this.profile = data;
-        },
-        error: (err) => {
-          console.error('Failed to load profile', err);
-        }
-      });
-  }
-
-  toggleEditProfile(): void {
-    this.isEditingProfile = !this.isEditingProfile;
-  }
-
-  saveProfile(): void {
-    this.isSubmitting = true;
-    this.http.put(`${this.BASE}/api/approvers/${this.approverId}`, this.profile)
-      .subscribe({
-        next: (data: any) => {
-          this.profile = data;
-          this.isEditingProfile = false;
-          this.isSubmitting = false;
-          this.successMessage = 'Profile updated successfully.';
-          this.approverName = data.name;
-          setTimeout(() => this.successMessage = '', 3000);
-        },
-        error: (err) => {
-          this.errorMessage = 'Failed to update profile.';
-          this.isSubmitting = false;
-        }
-      });
   }
 
   // --- Approve ---
@@ -391,8 +239,8 @@ export class ApproverDashboardComponent implements OnInit, OnDestroy {
   // --- Helpers ---
   getStatusClass(status: string): string {
     const s = (status || '').toUpperCase();
-    if (s === 'APPROVED' || s === 'BOOKED') return 'badge-approved';
-    if (s === 'REJECTED' || s === 'CANCELLED') return 'badge-rejected';
+    if (s === 'APPROVED') return 'badge-approved';
+    if (s === 'REJECTED') return 'badge-rejected';
     return 'badge-pending';
   }
 

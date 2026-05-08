@@ -3,15 +3,5 @@
     "target": "http://localhost:8080",
     "secure": false,
     "changeOrigin": true
-  },
-  "/events": {
-    "target": "http://localhost:8080",
-    "secure": false,
-    "changeOrigin": true
-  },
-  "/permissions": {
-    "target": "http://localhost:8080",
-    "secure": false,
-    "changeOrigin": true
   }
 }

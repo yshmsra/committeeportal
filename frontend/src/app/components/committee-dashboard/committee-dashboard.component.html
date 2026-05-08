@@ -143,8 +143,8 @@
           <tbody>
             <tr *ngFor="let app of applications" class="table-row">
               <td class="app-id">{{ app.applicationId }}</td>
-              <td class="event-name">{{ app.event.eventName || '—' }}</td>
-              <td class="text-muted">{{ app.event.eventDate ? (app.event.eventDate | date:'dd MMM yyyy') : '—' }}</td>
+              <td class="event-name">{{ app.event?.eventName || '—' }}</td>
+              <td class="text-muted">{{ app.event?.eventDate ? (app.event.eventDate | date:'dd MMM yyyy') : '—' }}</td>
               <td class="text-muted">{{ app.uploadDate ? (app.uploadDate | date:'dd MMM yyyy') : '—' }}</td>
               <td>
                 <span class="status-badge" [ngClass]="getStatusClass(app.status)">
@@ -518,15 +518,15 @@
         <p class="section-title">Event Info</p>
         <div class="detail-row">
           <span class="detail-label">Event Name</span>
-          <span class="detail-value">{{ selectedApp.event.eventName || '—' }}</span>
+          <span class="detail-value">{{ selectedApp.event?.eventName || '—' }}</span>
         </div>
         <div class="detail-row">
           <span class="detail-label">Event Date</span>
-          <span class="detail-value">{{ selectedApp.event.eventDate ? (selectedApp.event.eventDate | date:'dd MMM yyyy') : '—' }}</span>
+          <span class="detail-value">{{ selectedApp.event?.eventDate ? (selectedApp.event.eventDate | date:'dd MMM yyyy') : '—' }}</span>
         </div>
         <div class="detail-row">
           <span class="detail-label">Venue</span>
-          <span class="detail-value">{{ selectedApp.event.venue?.venueName || '—' }}</span>
+          <span class="detail-value">{{ selectedApp.event?.venue?.venueName || '—' }}</span>
         </div>
       </div>
 
