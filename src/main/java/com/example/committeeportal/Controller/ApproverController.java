@@ -143,19 +143,27 @@ public class ApproverController {
     // ✅ PUT update (replace entire object)
 @Operation(summary = "Replace approval by id (PUT)")    
 @PutMapping("/{id}")
-public ResponseEntity<Approver> updateApprover(
+public ResponseEntity<?> updateApprover(
         @PathVariable Long id,
-        @RequestBody Approver approverDetails) {
-    logger.info("Updating approver with ID: {}", id);       
+        @Valid @RequestBody Approver approverDetails,
+        BindingResult bindingResult) {
+    logger.info("Updating approver with ID: {}", id);
+    
+    if (bindingResult.hasErrors()) {
+        StringBuilder errorMsg = new StringBuilder();
+        bindingResult.getAllErrors().forEach(e -> errorMsg.append(e.getDefaultMessage()).append("; "));
+        logger.warn("Validation failed for update ID {}: {}", id, errorMsg);
+        return ResponseEntity.badRequest().body(new ErrorResponse("Validation failed", errorMsg.toString()));
+    }
+    
     return approverRepository.findById(id)
             .map(existing -> {
                 existing.setName(approverDetails.getName());
                 existing.setEmail(approverDetails.getEmail());
                 existing.setRole(approverDetails.getRole());
-                existing.setDigitalSignature(approverDetails.getDigitalSignature());
                 
-                // Use AuthService to encrypt password if provided
-                if (approverDetails.getPassword() != null) {
+                // Use AuthService to encrypt password ONLY if a new one is provided
+                if (approverDetails.getPassword() != null && !approverDetails.getPassword().trim().isEmpty()) {
                     authService.updateApproverPassword(id, approverDetails.getPassword());
                 }
                 
@@ -169,10 +177,18 @@ public ResponseEntity<Approver> updateApprover(
     // ✅ PATCH partial update
 @Operation(summary = "Patch a single field of approval")    
 @PatchMapping("/{id}")
-public ResponseEntity<Approver> patchApprover(
+public ResponseEntity<?> patchApprover(
         @PathVariable Long id,
-        @RequestBody Approver partial) {
-    logger.info("Patching approver with ID: {}", id);        
+        @Valid @RequestBody Approver partial,
+        BindingResult bindingResult) {
+    logger.info("Patching approver with ID: {}", id);
+    
+    if (bindingResult.hasErrors()) {
+        StringBuilder errorMsg = new StringBuilder();
+        bindingResult.getAllErrors().forEach(e -> errorMsg.append(e.getDefaultMessage()).append("; "));
+        logger.warn("Validation failed for patch ID {}: {}", id, errorMsg);
+        return ResponseEntity.badRequest().body(new ErrorResponse("Validation failed", errorMsg.toString()));
+    }
     return approverRepository.findById(id)
             .map(existing -> {
                 if (partial.getName() != null) {
@@ -184,10 +200,7 @@ public ResponseEntity<Approver> patchApprover(
                 if (partial.getRole() != null) {
                     existing.setRole(partial.getRole());
                 }
-                if (partial.getDigitalSignature() != null) {
-                    existing.setDigitalSignature(partial.getDigitalSignature());
-                }
-                if (partial.getPassword() != null) {
+                if (partial.getPassword() != null && !partial.getPassword().trim().isEmpty()) {
                     // Use AuthService to encrypt password
                     authService.updateApproverPassword(id, partial.getPassword());
                 }

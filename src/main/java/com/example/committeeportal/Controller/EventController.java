@@ -23,13 +23,14 @@ import com.example.committeeportal.Entity.Event;
 import com.example.committeeportal.Repository.BookingRepository;
 import com.example.committeeportal.Repository.EventRepository;
 import com.example.committeeportal.ResponseBean.ErrorResponse;
+import com.example.committeeportal.ResponseBean.SuccessResponse;
 
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 
 @Tag(name = "event", description = "Operations related to events")
 @RestController
-@RequestMapping("/events")
+@RequestMapping("/api/events")
 public class EventController{
     private static final Logger logger = LoggerFactory.getLogger(EventController.class);
     private final EventRepository eventRepository;
@@ -141,15 +142,15 @@ public class EventController{
     //Delete event by id
     @Operation(summary = "Delete event by id")
     @DeleteMapping("/{id}")
-    public String deleteEvent(@PathVariable Long id) {
+    public ResponseEntity<?> deleteEvent(@PathVariable Long id) {
         logger.info("Deleting event with ID: {}", id);
         if(eventRepository.existsById(id)) {
             eventRepository.deleteById(id);
             logger.info("Event {} deleted successfully", id);
-            return "Event deleted successfully!";
+            return ResponseEntity.ok(new SuccessResponse("Event deleted successfully!"));
         } else {
             logger.warn("Event with ID {} not found for deletion!", id);
-            return "Event not found!";
+            return ResponseEntity.status(HttpStatus.NOT_FOUND).body(new ErrorResponse("Event not found!"));
         }
     }
 

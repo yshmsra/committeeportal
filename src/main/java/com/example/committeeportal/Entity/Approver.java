@@ -25,12 +25,12 @@ public class Approver {
     private Long approverId;
 
     @NotBlank(message = "Name is required")
-    @Size(min = 3, max = 100, message = "Name must be between 3 and 100 characters")
+    @Size(min = 2, max = 100, message = "Name must be between 2 and 100 characters")
     @Column(name = "name")
     private String name;
     
     @NotBlank(message = "Role is required")
-    @Size(min = 3, max = 50, message = "Role must be valid")
+    @Size(min = 2, max = 50, message = "Role must be valid")
     @Column(name = "role")
     private String role;
     
@@ -39,9 +39,8 @@ public class Approver {
     @Column(name = "email", unique = true)
     private String email;
     
-    @Column(name = "digital_signature")
-    private String digitalSignature;
     
+    @JsonIgnore
     @NotBlank(message = "Password is required")
     @Size(min = 6, message = "Password must be at least 6 characters")
     @Column(name = "password")
@@ -75,12 +74,6 @@ public class Approver {
     }
     public void setEmail(String email) {
         this.email = email;
-    }
-    public String getDigitalSignature() {
-        return digitalSignature;
-    }
-    public void setDigitalSignature(String digitalSignature) {
-        this.digitalSignature = digitalSignature;
     }
     public String getPassword() {
         return password;

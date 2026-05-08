@@ -107,6 +107,17 @@
 
     <!-- ─── TAB: Applications ─── -->
     <div *ngIf="!isLoading && activeTab === 'applications'">
+      <!-- Status Filter Bar -->
+      <div class="filter-bar">
+        <label for="approvalStatusFilter" class="filter-label">Filter by Status:</label>
+        <select id="approvalStatusFilter" class="filter-select" (change)="onApprovalStatusFilterChange($event)" [value]="approvalStatusFilter">
+          <option value="">All Applications</option>
+          <option value="PENDING">Pending</option>
+          <option value="APPROVED">Approved</option>
+          <option value="REJECTED">Rejected</option>
+        </select>
+      </div>
+
       <div *ngIf="applications.length === 0" class="empty-state">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" width="48" height="48">
           <path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/>
@@ -154,6 +165,16 @@
 
     <!-- ─── TAB: Events ─── -->
     <div *ngIf="!isLoading && activeTab === 'events'">
+      <!-- Status Filter Bar -->
+      <div class="filter-bar">
+        <label for="eventStatusFilter" class="filter-label">Filter by Status:</label>
+        <select id="eventStatusFilter" class="filter-select" (change)="onEventStatusFilterChange($event)" [value]="eventStatusFilter">
+          <option value="">All Events</option>
+          <option value="UPCOMING">Upcoming</option>
+          <option value="COMPLETED">Completed</option>
+        </select>
+      </div>
+
       <div *ngIf="events.length === 0" class="empty-state">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" width="48" height="48">
           <rect x="3" y="4" width="18" height="18" rx="2" ry="2"/>
@@ -180,7 +201,7 @@
             </tr>
           </thead>
           <tbody>
-            <tr *ngFor="let event of events" class="table-row">
+            <tr *ngFor="let event of events" class="table-row no-hover">
               <td class="app-id">{{ event.eventId }}</td>
               <td class="event-name">{{ event.eventName }}</td>
               <td class="text-muted">{{ event.eventDate ? (event.eventDate | date:'dd MMM yyyy') : '—' }}</td>
@@ -196,12 +217,14 @@
                 <button
                   *ngIf="!hasApplication(event)"
                   class="btn-action btn-apply"
-                  (click)="submitPermission(event)">
+                  type="button"
+                  (click)="submitPermission(event, $event)">
                   Apply for Permission
                 </button>
                 <button
                   *ngIf="hasApplication(event) && getApplicationForEvent(event) as app"
                   class="btn-action btn-details"
+                  type="button"
                   (click)="openDetails(app)">
                   View Application
                 </button>
@@ -222,65 +245,70 @@
         <p>Fill in the details to register a new event for your committee.</p>
       </div>
       <div class="form-card-body">
-        <div class="form-row">
-          <div class="form-group">
-            <label for="eventName">Event Name <span class="required">*</span></label>
-            <input
-              type="text"
-              id="eventName"
-              name="eventName"
-              [(ngModel)]="newEvent.eventName"
-              placeholder="e.g. Annual Cultural Fest"
-            />
-          </div>
-          <div class="form-group">
-            <label for="eventDate">Event Date <span class="required">*</span></label>
-            <input
-              type="date"
-              id="eventDate"
-              name="eventDate"
-              [(ngModel)]="newEvent.eventDate"
-              (change)="loadVenueAvailability()"
-              [min]="getTodayDateString()"
-            />
-          </div>
-        </div>
+        <form #newEventForm="ngForm">
+            <div class="form-row">
+                <div class="form-group">
+                    <label for="eventName-new">Event Name <span class="required">*</span></label>
+                    <input
+                        type="text"
+                        id="eventName-new"
+                        name="eventName"
+                        [(ngModel)]="newEvent.eventName"
+                        placeholder="e.g. Annual Cultural Fest"
+                        required
+                    />
+                </div>
+                <div class="form-group">
+                    <label for="eventDate-new">Event Date <span class="required">*</span></label>
+                    <input
+                        type="date"
+                        id="eventDate-new"
+                        name="eventDate"
+                        [(ngModel)]="newEvent.eventDate"
+                        (change)="loadVenueAvailability()"
+                        [min]="getMinEventDateString()"
+                        required
+                    />
+                    <p style="font-size: 12px; color: #666; margin-top: 4px;">Only dates starting from tomorrow are allowed</p>
+                </div>
+            </div>
 
-        <div class="form-row">
-          <div class="form-group">
-            <label for="expectedParticipants">Expected Participants</label>
-            <input
-              type="number"
-              id="expectedParticipants"
-              name="expectedParticipants"
-              [(ngModel)]="newEvent.expectedParticipants"
-              placeholder="e.g. 200"
-              min="1"
-            />
-          </div>
-          <div class="form-group">
-            <label for="venueId">Venue</label>
-            <select id="venueId" name="venueId" [(ngModel)]="newEvent.venueId">
-              <option [ngValue]="null">Select a venue (optional)</option>
-              <option *ngFor="let v of venues" [ngValue]="v.venueId">
-                {{ v.venueName }}{{ v.capacity ? ' (Cap: ' + v.capacity + ')' : '' }}
-              </option>
-            </select>
-          </div>
-        </div>
+            <div class="form-row">
+                <div class="form-group">
+                    <label for="expectedParticipants-new">Expected Participants</label>
+                    <input
+                        type="number"
+                        id="expectedParticipants-new"
+                        name="expectedParticipants"
+                        [(ngModel)]="newEvent.expectedParticipants"
+                        placeholder="e.g. 200"
+                        min="1"
+                    />
+                </div>
+                <div class="form-group">
+                    <label for="venueId-new">Venue</label>
+                    <select id="venueId-new" name="venueId" [(ngModel)]="newEvent.venueId">
+                        <option [ngValue]="null">Select a venue (optional)</option>
+                        <option *ngFor="let v of venues" [ngValue]="v.venueId">
+                            {{ v.venueName }}{{ v.capacity ? ' (Cap: ' + v.capacity + ')' : '' }}
+                        </option>
+                    </select>
+                </div>
+            </div>
 
-        <div class="form-row">
-          <div class="form-group full-width">
-            <label for="description">Event Description (Optional)</label>
-            <textarea
-              id="description"
-              name="description"
-              [(ngModel)]="newEvent.description"
-              placeholder="Describe your event, activities, or any special requirements..."
-              rows="4"
-            ></textarea>
-          </div>
-        </div>
+            <div class="form-row">
+                <div class="form-group full-width">
+                    <label for="description-new">Event Description (Optional)</label>
+                    <textarea
+                        id="description-new"
+                        name="description"
+                        [(ngModel)]="newEvent.description"
+                        placeholder="Describe your event, activities, or any special requirements..."
+                        rows="4"
+                    ></textarea>
+                </div>
+            </div>
+        </form>
 
         <!-- Venue Availability View (Show First) -->
         <div *ngIf="newEvent.eventDate" class="venue-availability-section">
@@ -333,7 +361,6 @@
           </div>
         </div>
 
-        <!-- Time Slot Selection (Show After Availability) -->
         <div *ngIf="newEvent.venueId && newEvent.eventDate && !isLoadingAvailability" class="form-section">
           <h3>Select Time Slot</h3>
           <p class="helper-text">Time automatically filled when you click a slot above, or enter manually</p>
@@ -342,10 +369,10 @@
           <div class="time-input-section">
             <div class="form-row">
               <div class="form-group">
-                <label for="startTime">Start Time <span class="required">*</span></label>
+                <label for="startTime-new">Start Time <span class="required">*</span></label>
                 <input
                   type="time"
-                  id="startTime"
+                  id="startTime-new"
                   name="startTime"
                   [(ngModel)]="newEvent.startTime"
                   class="time-input-field"
@@ -353,10 +380,10 @@
               </div>
               <div class="time-separator">→</div>
               <div class="form-group">
-                <label for="endTime">End Time <span class="required">*</span></label>
+                <label for="endTime-new">End Time <span class="required">*</span></label>
                 <input
                   type="time"
-                  id="endTime"
+                  id="endTime-new"
                   name="endTime"
                   [(ngModel)]="newEvent.endTime"
                   class="time-input-field"
@@ -376,6 +403,78 @@
           <button class="btn-submit" type="button" [disabled]="isSubmittingEvent" (click)="submitNewEvent()">
             {{ isSubmittingEvent ? 'Creating...' : 'Create Event' }}
           </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- ─── Submit Permission Modal ─── -->
+    <div class="drawer-overlay" *ngIf="showSubmitModal" (click)="closeSubmitModal()">
+      <div class="drawer submit-drawer" (click)="$event.stopPropagation()">
+        <div class="drawer-header">
+          <div>
+            <h3>Submit Permission Application</h3>
+            <p class="drawer-subtitle">Select approver and attach documents for "{{ selectedEventToSubmit?.eventName }}"</p>
+          </div>
+          <button class="modal-close" (click)="closeSubmitModal()" aria-label="Close">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="20" height="20">
+              <line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>
+            </svg>
+          </button>
+        </div>
+        <div class="drawer-body">
+          <!-- Approver Selection -->
+          <div class="modal-form-group">
+            <label for="approverSelect" class="modal-label">Select Approver</label>
+            <select id="approverSelect" [(ngModel)]="selectedApproverId" class="modal-select">
+              <option [ngValue]="null" disabled selected>-- Choose Approver --</option>
+              <option *ngFor="let approver of approvers" [ngValue]="approver.approverId">
+                {{ approver.name }} ({{ approver.role }})
+              </option>
+            </select>
+            <p *ngIf="approvers.length === 0" class="field-error" style="margin-top: 10px;">No approvers available. Registration required.</p>
+          </div>
+
+          <!-- File Upload Section -->
+          <div class="modal-form-group">
+            <label class="modal-label">Attach Documents <span class="required">*</span></label>
+            <div class="drop-zone" (click)="submitFileInput.click()">
+              <input type="file" multiple accept=".pdf" (change)="onFilesSelected($event)" #submitFileInput style="display: none;" />
+              <svg class="drop-zone-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/>
+              </svg>
+              <p class="drop-zone-text">Click to upload or drag and drop</p>
+              <p class="drop-zone-subtext">PDF files only (max 5 files)</p>
+            </div>
+          </div>
+
+          <!-- Selected Files List -->
+          <div *ngIf="selectedFiles.length > 0" class="modal-form-group">
+            <label class="modal-label">Selected Files ({{ selectedFiles.length }})</label>
+            <div class="selected-files-container">
+              <div *ngFor="let file of selectedFiles" class="file-row">
+                <div class="file-info">
+                  <p>{{ file.name }}</p>
+                  <span>{{ formatFileSize(file.size) }}</span>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Error Message -->
+          <div *ngIf="errorMessage" class="error-banner">{{ errorMessage }}</div>
+
+          <!-- Form Actions -->
+          <div class="form-actions">
+            <button class="btn-cancel" (click)="closeSubmitModal()" [disabled]="isSubmittingPermission">Cancel</button>
+            <button class="btn-submit" (click)="confirmSubmitPermission()" [disabled]="!selectedApproverId || selectedFiles.length === 0 || isSubmittingPermission">
+              <span *ngIf="!isSubmittingPermission">
+                Submit with {{ selectedFiles.length }} Document{{ selectedFiles.length !== 1 ? 's' : '' }}
+              </span>
+              <span *ngIf="isSubmittingPermission">
+                <span class="spinner-small"></span> Submitting...
+              </span>
+            </button>
+          </div>
         </div>
       </div>
     </div>
@@ -461,63 +560,6 @@
           </div>
         </div>
 
-        <!-- Upload New Documents -->
-        <div class="upload-section">
-          <p class="upload-hint">
-            Upload hardcopy permission documents (PDF only)
-          </p>
-          
-          <div class="file-input-wrapper">
-            <input 
-              type="file" 
-              id="permissionDocs" 
-              #fileInput 
-              multiple 
-              accept=".pdf" 
-              (change)="onFilesSelected($event)"
-              style="display: none;"
-            />
-            <button 
-              class="btn-file-select" 
-              (click)="fileInput.click()"
-              [disabled]="uploadingDocuments">
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16">
-                <path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/>
-              </svg>
-              Choose PDF Files
-            </button>
-          </div>
-
-          <div *ngIf="selectedFiles.length > 0" class="selected-files-list">
-            <p class="selected-files-title">
-              {{ selectedFiles.length }} file(s) selected:
-            </p>
-            <ul>
-              <li *ngFor="let file of selectedFiles">{{ file.name }} ({{ formatFileSize(file.size) }})</li>
-            </ul>
-          </div>
-
-          <div *ngIf="documentUploadError" class="upload-error">
-            {{ documentUploadError }}
-          </div>
-
-          <div class="upload-actions" *ngIf="selectedFiles.length > 0">
-            <button 
-              class="btn-cancel" 
-              (click)="selectedFiles = []; fileInput.value = ''"
-              [disabled]="uploadingDocuments">
-              Clear Selection
-            </button>
-            <button 
-              class="btn-submit" 
-              (click)="uploadDocuments(selectedApp!.applicationId)"
-              [disabled]="uploadingDocuments || selectedFiles.length === 0">
-              {{ uploadingDocuments ? 'Uploading...' : 'Upload Documents' }}
-            </button>
-          </div>
-        </div>
-      </div>
-
       <!-- Approval status info banner -->
       <div class="status-info-banner" [ngClass]="'banner-' + getStatusClass(selectedApp.status)">
         <ng-container *ngIf="(selectedApp.status || '').toUpperCase() === 'APPROVED'">
@@ -542,80 +584,208 @@
           <p class="remarks-label">Approver Feedback:</p>
           <p class="remarks-text no-remarks">No specific feedback provided by the approver.</p>
         </div>
+
+        <!-- NEW Actions for Rejected Applications -->
+        <div *ngIf="(selectedApp.status || '').toUpperCase() === 'REJECTED'" class="rejected-actions">
+          <p class="actions-hint">Since this application was rejected, you can choose to:</p>
+          <div class="action-buttons">
+            <button class="btn-edit-rejected" (click)="handleRejectedApplicationAction('edit', selectedApp, $event)">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16">
+                <path d="M11 4H4a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 013 3L12 15l-4 1 1-4 9.5-9.5z"/>
+              </svg>
+              Edit & Re-apply
+            </button>
+            <button class="btn-delete-rejected" (click)="handleRejectedApplicationAction('delete', selectedApp, $event)">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16">
+                <polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 01-2 2H7a2 2 0 01-2-2V6m3 0V4a2 2 0 012-2h4a2 2 0 012 2v2"/>
+              </svg>
+              Cancel Event
+            </button>
+          </div>
+        </div>
       </div>
 
     </div>
   </div>
 </div>
 
-<!-- ─── Submit Permission Modal ─── -->
-<div class="drawer-overlay" *ngIf="showSubmitModal" (click)="closeSubmitModal()">
-  <div class="drawer submit-drawer" (click)="$event.stopPropagation()">
+<!-- ─── Event Details Modal ─── -->
+<div class="drawer-overlay" *ngIf="showEventDetailsModal" (click)="closeEventDetailsModal()">
+  <div class="drawer event-details-drawer" (click)="$event.stopPropagation()">
     <div class="drawer-header">
       <div>
-        <h3>Submit Permission Application</h3>
-        <p class="drawer-subtitle">Select approver and attach documents for "{{ selectedEventToSubmit?.eventName }}"</p>
+        <h3>Event Details</h3>
+        <p class="drawer-subtitle" *ngIf="selectedEvent">Event #{{ selectedEvent.eventId }}</p>
       </div>
-      <button class="modal-close" (click)="closeSubmitModal()" aria-label="Close">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="20" height="20">
+      <button class="modal-close" (click)="closeEventDetailsModal()" aria-label="Close">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="18" height="18">
           <line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>
         </svg>
       </button>
     </div>
-    <div class="drawer-body">
-      <!-- Approver Selection -->
-      <div class="modal-form-group">
-        <label for="approverSelect" class="modal-label">Select Approver</label>
-        <select id="approverSelect" [(ngModel)]="selectedApproverId" class="modal-select">
-          <option [ngValue]="null" disabled selected>-- Choose Approver --</option>
-          <option *ngFor="let approver of approvers" [ngValue]="approver.approverId">
-            {{ approver.name }} ({{ approver.role }})
-          </option>
-        </select>
-        <p *ngIf="approvers.length === 0" class="field-error" style="margin-top: 10px;">No approvers available. Registration required.</p>
-      </div>
-
-      <!-- File Upload Section -->
-      <div class="modal-form-group">
-        <label class="modal-label">Attach Documents <span class="required">*</span></label>
-        <div class="drop-zone" (click)="submitFileInput.click()">
-          <input type="file" multiple accept=".pdf" (change)="onFilesSelected($event)" #submitFileInput style="display: none;" />
-          <svg class="drop-zone-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/>
-          </svg>
-          <p class="drop-zone-text">Click to upload or drag and drop</p>
-          <p class="drop-zone-subtext">PDF files only (max 5 files)</p>
+    
+    <div class="drawer-body" *ngIf="selectedEvent && !isEditingEvent">
+      <!-- Event Information -->
+      <div class="detail-section">
+        <p class="section-title">Basic Information</p>
+        <div class="detail-row">
+          <span class="detail-label">Event Name</span>
+          <span class="detail-value">{{ selectedEvent.eventName }}</span>
+        </div>
+        <div class="detail-row">
+          <span class="detail-label">Event Date</span>
+          <span class="detail-value">{{ selectedEvent.eventDate ? (selectedEvent.eventDate | date:'dd MMM yyyy') : '—' }}</span>
+        </div>
+        <div class="detail-row">
+          <span class="detail-label">Expected Participants</span>
+          <span class="detail-value">{{ selectedEvent.expectedParticipants || '—' }}</span>
+        </div>
+        <div class="detail-row" *ngIf="selectedEvent.description">
+          <span class="detail-label">Description</span>
+          <span class="detail-value">{{ selectedEvent.description }}</span>
         </div>
       </div>
 
-      <!-- Selected Files List -->
-      <div *ngIf="selectedFiles.length > 0" class="modal-form-group">
-        <label class="modal-label">Selected Files ({{ selectedFiles.length }})</label>
-        <div class="selected-files-container">
-          <div *ngFor="let file of selectedFiles" class="file-row">
-            <div class="file-info">
-              <p>{{ file.name }}</p>
-              <span>{{ formatFileSize(file.size) }}</span>
+      <!-- Venue Information -->
+      <div class="detail-section" *ngIf="selectedEvent.venue">
+        <p class="section-title">Venue Information</p>
+        <div class="detail-row">
+          <span class="detail-label">Venue</span>
+          <span class="detail-value">{{ selectedEvent.venue.venueName }}</span>
+        </div>
+        <div class="detail-row" *ngIf="selectedEvent.venue.venueLocation">
+          <span class="detail-label">Location</span>
+          <span class="detail-value">{{ selectedEvent.venue.venueLocation }}</span>
+        </div>
+        <div class="detail-row" *ngIf="selectedEvent.venue.capacity">
+          <span class="detail-label">Capacity</span>
+          <span class="detail-value">{{ selectedEvent.venue.capacity }} people</span>
+        </div>
+        <div class="detail-row" *ngIf="selectedEvent.startTime && selectedEvent.endTime">
+          <span class="detail-label">Time Slot</span>
+          <span class="detail-value">{{ selectedEvent.startTime }} - {{ selectedEvent.endTime }}</span>
+        </div>
+      </div>
+
+      <!-- Event Status -->
+      <div class="detail-section" *ngIf="selectedEvent.status">
+        <p class="section-title">Status</p>
+        <div class="detail-row">
+          <span class="detail-label">Event Status</span>
+          <span class="status-badge" [ngClass]="getStatusClass(selectedEvent.status)">
+            {{ selectedEvent.status }}
+          </span>
+        </div>
+      </div>
+
+      <!-- Error Message -->
+      <div *ngIf="eventDetailsError" class="error-banner">{{ eventDetailsError }}</div>
+
+      <!-- Editing Restriction Message -->
+      <div *ngIf="selectedEvent && !canEditEvent(selectedEvent.eventId)" class="info-banner" style="background-color: #e3f2fd; border-left: 4px solid #2196f3; padding: 12px; margin-bottom: 16px; border-radius: 4px;">
+        <p style="color: #1976d2; margin: 0; font-size: 14px;">
+          ✓ This event cannot be edited as a permission application is already submitted.
+          <br/>
+          <strong>Editing allowed only if the application is rejected.</strong>
+        </p>
+      </div>
+
+      <!-- Action Buttons -->
+      <div class="form-actions">
+        <button class="btn-secondary" (click)="startEditingEvent()" [disabled]="!canEditEvent(selectedEvent.eventId)">
+          {{ canEditEvent(selectedEvent.eventId) ? 'Edit Event' : 'Cannot Edit (Submitted)' }}
+        </button>
+        <button class="btn-danger" (click)="deleteEvent(selectedEvent.eventId, selectedEvent.eventName)">Cancel Event</button>
+        <button class="btn-cancel" (click)="closeEventDetailsModal()">Close</button>
+      </div>
+    </div>
+
+    <div class="drawer-body" *ngIf="isEditingEvent && editEventData">
+      <div class="detail-section">
+        <p class="section-title">Edit Event Details</p>
+        
+        <div class="form-group">
+          <label for="editEventName-{{selectedEvent?.eventId}}">Event Name</label>
+          <input
+            type="text"
+            id="editEventName-{{selectedEvent?.eventId}}"
+            [(ngModel)]="editEventData.eventName"
+            placeholder="Event name"
+          />
+        </div>
+
+        <div class="form-group">
+          <label for="editEventDate-{{selectedEvent?.eventId}}">Event Date</label>
+          <input
+            type="date"
+            id="editEventDate-{{selectedEvent?.eventId}}"
+            [(ngModel)]="editEventData.eventDate"
+            [min]="getMinEventDateString()"
+          />
+        </div>
+
+        <div class="form-group">
+          <label for="editParticipants-{{selectedEvent?.eventId}}">Expected Participants</label>
+          <input
+            type="number"
+            id="editParticipants-{{selectedEvent?.eventId}}"
+            [(ngModel)]="editEventData.expectedParticipants"
+            placeholder="Number of participants"
+            min="1"
+          />
+        </div>
+
+        <div class="form-group">
+          <label for="editDescription-{{selectedEvent?.eventId}}">Description</label>
+          <textarea
+            id="editDescription-{{selectedEvent?.eventId}}"
+            [(ngModel)]="editEventData.description"
+            placeholder="Event description"
+            rows="4"
+          ></textarea>
+        </div>
+      </div>
+
+      <!-- Re-submit Documents Section (show only if editing after rejection) -->
+      <div *ngIf="isEditingAfterRejection" class="detail-section" style="background-color: #fff3cd; padding: 16px; border-left: 4px solid #ffc107; margin-top: 16px; border-radius: 4px;">
+        <p class="section-title" style="color: #856404; margin-top: 0;">Re-submit Permission Documents</p>
+        <p style="color: #856404; font-size: 13px; margin: 8px 0;">Your previous application was rejected. Upload new/updated documents along with this edited event for re-review.</p>
+        
+        <div style="margin-top: 12px;">
+          <label style="display: block; font-weight: 500; margin-bottom: 8px; color: #333;">Attach Documents (PDF only)</label>
+          <div class="drop-zone" (click)="resubmitFileInput.click()">
+            <input type="file" multiple accept=".pdf" (change)="onFilesSelected($event)" #resubmitFileInput style="display: none;" />
+            <svg class="drop-zone-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/>
+            </svg>
+            <p class="drop-zone-text">Click to upload or drag and drop</p>
+            <p class="drop-zone-subtext">PDF files only (max 5 files)</p>
+          </div>
+          
+          <!-- Selected Files Preview -->
+          <div *ngIf="selectedFiles.length > 0" style="margin-top: 12px;">
+            <p style="font-weight: 500; color: #333; margin: 0 0 8px 0;">Selected Files ({{ selectedFiles.length }}):</p>
+            <div *ngFor="let file of selectedFiles" style="display: flex; align-items: center; padding: 8px; background: #f5f5f5; border-radius: 4px; margin-bottom: 8px;">
+              <svg width="16" height="16" fill="#666" style="margin-right: 8px;" viewBox="0 0 24 24">
+                <path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/>
+              </svg>
+              <span style="flex: 1; color: #333;">{{ file.name }}</span>
+              <button type="button" (click)="removeFile(file)" style="background: #ff6b6b; color: white; border: none; padding: 4px 8px; border-radius: 3px; cursor: pointer; font-size: 12px;">Remove</button>
             </div>
           </div>
         </div>
       </div>
 
-      <!-- Error Message -->
-      <div *ngIf="errorMessage" class="error-banner">{{ errorMessage }}</div>
+      <div *ngIf="eventDetailsError" class="error-banner">{{ eventDetailsError }}</div>
 
-      <!-- Form Actions -->
       <div class="form-actions">
-        <button class="btn-cancel" (click)="closeSubmitModal()" [disabled]="isSubmittingPermission">Cancel</button>
-        <button class="btn-submit" (click)="confirmSubmitPermission()" [disabled]="!selectedApproverId || selectedFiles.length === 0 || isSubmittingPermission">
-          <span *ngIf="!isSubmittingPermission">
-            Submit with {{ selectedFiles.length }} Document{{ selectedFiles.length !== 1 ? 's' : '' }}
-          </span>
-          <span *ngIf="isSubmittingPermission">
-            <span class="spinner-small"></span> Submitting...
-          </span>
+        <button class="btn-cancel" (click)="cancelEditingEvent()">Cancel</button>
+        <button class="btn-submit" (click)="saveEventChanges()" [disabled]="isEditingAfterRejection && selectedFiles.length === 0">
+          {{ isEditingAfterRejection ? 'Update & Re-submit' : 'Save Changes' }}
         </button>
       </div>
     </div>
   </div>
 </div>
+
+
